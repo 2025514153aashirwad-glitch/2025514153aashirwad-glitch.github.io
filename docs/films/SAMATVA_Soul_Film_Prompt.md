@@ -1,7 +1,15 @@
 # SAMATVA: The Soul Film
 ### Structured creative prompt · draft 1 for collaboration · November 2026
 
-Paste this after the **Master Control Prompt** (Prompt Book, section 4). Anything marked **[CONFIRM]** is a proposal waiting for Aish's decision. Everything else is drawn from the Samatwam site, the manifesto lines already in use, and the four logo variants in `brand/logo/`.
+Paste this after the **Master Control Prompt** (Prompt Book, section 4). Everything is drawn from the Samatwam site, the manifesto lines already in use, and the four logo variants in `brand/logo/`.
+
+> **Decisions (Aish, 17 Nov 2026):**
+> - Emblem mapping as proposed: Sun = master, Wheel = Reform, Hexagon = Build, Octagon = Generation.
+> - Direction: **Vessel and Light** (A+B braid).
+> - End line: **“Uniting People, Building Systems.”**
+> - Language: **English, Indian voice**, for now.
+>
+> Remaining [CONFIRM] tags: master length (90 s default) and the Devanagari kicker words.
 
 ---
 
