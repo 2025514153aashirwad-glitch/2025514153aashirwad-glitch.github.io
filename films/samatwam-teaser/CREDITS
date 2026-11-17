@@ -1,0 +1,25 @@
+SAMATWAM — Teaser
+
+Content
+  Samatwam Org Manifesto (November 2026) and Samatwam Visual System VS-1 (November 2026), Samatwam Org.
+  The mark in this film is a placeholder drawn from the VS-1 anatomy (crescent, emblem, spine, loop,
+  triangles, seed); replace it with the official mark.
+
+Typefaces (SIL Open Font License 1.1, from github.com/google/fonts)
+  Space Grotesk — Florian Karsten
+  Inter — Rasmus Andersson
+  JetBrains Mono — JetBrains
+  Noto Sans Devanagari — Google / Noto project
+
+Voice
+  Kokoro-82M text-to-speech (Apache 2.0), voice "bm_george", generated offline.
+
+Music and sound
+  Synthesized in code (mix.py): pads, plucks, bells, sub and soft drums; foley from the
+  Lemo-Opuscar library's procedural sfx.py. No samples or recordings.
+
+Picture
+  Drawn in code (index.html, Canvas 2D). No stock, footage or generated imagery.
+
+Tools
+  Lemo-Opuscar film library (render, mux) — github.com/lemomo-ai/lemo-opuscar; FFmpeg.

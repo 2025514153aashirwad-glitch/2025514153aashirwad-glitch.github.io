@@ -1,0 +1,10 @@
+[
+ {"id":"l1","text":"Every work begins as a seed: a real problem, worth solving.","voice":"bm_george","speed":0.9},
+ {"id":"l2","text":"Schools bring their students. Industry brings real requirements.","voice":"bm_george","speed":0.9},
+ {"id":"l3","text":"In the Studio, they build, across six classes, directing intelligent tools.","voice":"bm_george","speed":0.9},
+ {"id":"l4","text":"At the crossing, a reviewer tests every claim.","voice":"bm_george","speed":0.88},
+ {"id":"l5","text":"What passes is certified. Exactly what was tested, and nothing more.","voice":"bm_george","speed":0.88},
+ {"id":"l6","text":"Then the work gives back. Seventy percent to its builders. Fifteen percent to an open Commons.","voice":"bm_george","speed":0.9},
+ {"id":"l7","text":"Many bodies. One structure.","voice":"bm_george","speed":0.85},
+ {"id":"l8","text":"Samatwam. Build it. Prove it. Give it back.","voice":"bm_george","speed":0.85, "asr":"Samatwam. Build it. Prove it. Give it back."}
+]

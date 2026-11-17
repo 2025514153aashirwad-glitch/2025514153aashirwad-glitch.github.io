@@ -1,0 +1,546 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Samatwam — Teaser</title>
+<style>
+@font-face { font-family: 'SG'; src: url('fonts/SpaceGrotesk.ttf') format('truetype'); font-weight: 300 700; }
+@font-face { font-family: 'Inter'; src: url('fonts/Inter.ttf') format('truetype'); font-weight: 100 900; }
+@font-face { font-family: 'JBM'; src: url('fonts/JetBrainsMono.ttf') format('truetype'); font-weight: 100 800; }
+@font-face { font-family: 'Deva'; src: url('fonts/NotoSansDevanagari.ttf') format('truetype'); font-weight: 100 900; }
+html, body { margin: 0; background: #FBF7EF; overflow: hidden; }
+canvas { display: block; }
+</style></head>
+<body><canvas id="c" width="1920" height="1080"></canvas>
+<script>
+// ===================== helpers =====================
+const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
+const lerp = (a, b, t) => a + (b - a) * t;
+const seg = (t, a, b) => clamp((t - a) / (b - a));
+const eio = t => { t = clamp(t); return t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; };
+const eo = t => 1 - Math.pow(1 - clamp(t), 3);
+const eo5 = t => 1 - Math.pow(1 - clamp(t), 5);
+const ei = t => Math.pow(clamp(t), 3);
+const back = (t, s = 1.6) => { t = clamp(t) - 1; return 1 + t * t * ((s + 1) * t + s); };
+const TAU = Math.PI * 2;
+const hash = n => { n = Math.sin(n * 127.1 + 311.7) * 43758.5453; return n - Math.floor(n); };
+
+// ===================== theme: VS-1 "Ink, Saffron, Paper" =====================
+const C = { surface: '#FBF7EF', alt: '#F3ECDD', ink: '#1C1A17', muted: '#5E574C', line: '#E6DFD2', saffron: '#E07A1F', gold: '#B8933B',
+  pass: '#2E7D32', fail: '#B3261E', pending: '#9A6B0E', eng: '#2F5D8C', cre: '#D9662B', forge: '#7A5C3E' };
+const rgb = h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+const mixc = (a, b, k) => { const A = rgb(a), B = rgb(b); return `rgb(${A.map((v, i) => Math.round(lerp(v, B[i], clamp(k)))).join(',')})`; };
+const alpha = (h, a) => { const A = rgb(h); return `rgba(${A.join(',')},${clamp(a)})`; };
+
+const W = 1920, H = 1080, cv = document.getElementById('c'), g = cv.getContext('2d');
+const BAR = 2.5;                      // 96 BPM
+window.DUR = 62.5;
+
+// narrator line starts (seconds) — the mix reads the same numbers from timeline.json
+const VO = { l1: 1.2, l2: 9.2, l3: 15.0, l4: 25.4, l5: 30.6, l6: 36.25, l7: 46.6, l8: 55.4 };
+const VOD = { l1: 4.53, l2: 4.627, l3: 5.551, l4: 3.463, l5: 5.172, l6: 6.51, l7: 2.443, l8: 3.408 };
+const CAP = [
+  ['l1', 'Every work begins as a seed: a real problem, worth solving.', 'हर काम एक बीज से शुरू होता है: हल करने लायक एक असली समस्या।'],
+  ['l2', 'Schools bring their students. Industry brings real requirements.', 'स्कूल अपने विद्यार्थी लाते हैं। उद्योग असली ज़रूरतें लाता है।'],
+  ['l3', 'In the Studio, they build, across six classes, directing intelligent tools.', 'स्टूडियो में वे छह कक्षाओं में निर्माण करते हैं, बुद्धिमान उपकरणों को दिशा देते हुए।'],
+  ['l4', 'At the crossing, a reviewer tests every claim.', 'संगम पर, एक समीक्षक हर दावे की जाँच करता है।'],
+  ['l5', 'What passes is certified. Exactly what was tested, and nothing more.', 'जो खरा उतरता है, वही प्रमाणित होता है। ठीक उतना, जितना जाँचा गया।'],
+  ['l6', 'Then the work gives back. 70% to its builders. 15% to an open Commons.', 'फिर काम लौटाता है। 70% उसके निर्माताओं को। 15% खुले कॉमन्स को।'],
+  ['l7', 'Many bodies. One structure.', 'अनेक शरीर। एक संरचना।'],
+  ['l8', 'Samatwam. Build it. Prove it. Give it back.', 'समत्वम्। बनाओ। साबित करो। लौटाओ।'],
+];
+
+// ===================== the mark (placeholder geometry from VS-1 anatomy) =====================
+// One table: every chapter is tied to a part of the mark. Swap these for the real mark's geometry.
+const M = {
+  seed: { x: 0, y: 425 },
+  triUp: { x: -150, y: 330, s: 52 },
+  triDown: { x: 150, y: 330, s: 52 },
+  loop: { x: 0, y: 130, a: 260 },              // lemniscate of Bernoulli, half-width a
+  spine: { x: 0, y0: 130, y1: -150, beads: [82, 34, -14, -62, -110] },
+  cres: { x: 0, y: -300, R: 150, ix: 0, iy: -345, r: 135 },
+  emblem: { x: 0, y: -335, r: 62 },
+};
+const lem = th => { const s = Math.sin(th), c = Math.cos(th), d = 1 + s * s; return { x: M.loop.x + M.loop.a * c / d, y: M.loop.y + M.loop.a * s * c / d }; };
+
+// ===================== the journey: the work's point, through the mark =====================
+const P = (x, y) => ({ x, y });
+function dotAt(t) {
+  const S = M.seed, U = M.triUp, D = M.triDown, X = P(M.loop.x, M.loop.y);
+  const L = (a, b) => (u => P(lerp(a.x, b.x, u), lerp(a.y, b.y, u)));
+  if (t < 6.5) return P(S.x, S.y);
+  if (t < 8.8) return L(S, P(U.x, U.y + 8))(eio(seg(t, 6.5, 8.8)));
+  if (t < 13.8) return P(U.x, U.y + 8);
+  if (t < 15.2) return L(P(U.x, U.y + 8), lem(5 * Math.PI / 4))(eio(seg(t, 13.8, 15.2)));
+  if (t < 24.6) return lem(lerp(5 * Math.PI / 4, Math.PI / 2, eio(seg(t, 15.2, 24.6))));
+  if (t < 35.8) return X;
+  if (t < 37.2) return lem(lerp(Math.PI / 2 - 1e-4, Math.PI / 4, eio(seg(t, 35.8, 37.2))));
+  if (t < 38.4) return L(lem(Math.PI / 4), P(D.x, D.y - 8))(eio(seg(t, 37.2, 38.4)));
+  if (t < 42.5) return P(D.x, D.y - 8);
+  if (t < 43.3) return L(P(D.x, D.y - 8), X)(eio(seg(t, 42.5, 43.3)));
+  if (t < 45.0) return P(0, lerp(M.spine.y0, M.spine.y1, eio(seg(t, 43.3, 45.0))));
+  if (t < 48.6) { // around the vessel: the crescent's outer arc, from the bottom, round and back
+    const u = eio(seg(t, 45.0, 48.6)), a = Math.PI / 2 + u * TAU * .999;
+    return P(M.cres.x + Math.cos(a) * M.cres.R, M.cres.y + Math.sin(a) * M.cres.R);
+  }
+  if (t < 49.6) return L(P(M.cres.x, M.cres.y + M.cres.R), P(M.emblem.x, M.emblem.y))(eio(seg(t, 48.6, 49.6)));
+  return P(M.emblem.x, M.emblem.y);
+}
+
+// ===================== camera (x, y, log-scale), one continuous path =====================
+const CAM = [ // t, x, y, s, easing into this key
+  [0, 0, 425, 7.2], [6.4, 0, 418, 6.4], [8.8, -132, 318, 5.6], [13.6, -138, 322, 6.0],
+  [15.2, -150, 128, 4.2], [23.7, -95, 132, 4.5], [24.6, 0, 130, 6.4, 'whip'], [29.8, 0, 130, 6.9], [30.15, 0, 130, 7.25, 'punch'], [35.7, 0, 130, 7.0],
+  [37.3, 140, 300, 4.4], [42.4, 150, 306, 4.6], [43.3, 0, 110, 4.6], [45.0, 0, -215, 4.0], [49.8, 0, -318, 4.2],
+  [54.8, 0, -8, .8], [56.4, 700, -8, .8], [62.5, 712, -8, .8],
+];
+function camAt(t) {
+  let i = 0; while (i < CAM.length - 2 && t > CAM[i + 1][0]) i++;
+  const a = CAM[i], b = CAM[i + 1], u = seg(t, a[0], b[0]);
+  const e = b[4] === 'whip' ? (u < .5 ? ei(u * 2) / 2 : .5 + eo(u * 2 - 1) / 2) : b[4] === 'punch' ? eo(u) : eio(u);
+  return { x: lerp(a[1], b[1], e), y: lerp(a[2], b[2], e), s: Math.exp(lerp(Math.log(a[3]), Math.log(b[3]), e)) };
+}
+let cam = { x: 0, y: 0, s: 1 };
+const sx = x => (x - cam.x) * cam.s + W / 2, sy = y => (y - cam.y) * cam.s + H / 2;
+const toS = p => P(sx(p.x), sy(p.y));
+
+// ===================== events for the mix =====================
+const EV = [];
+const ev = (t, type, o = {}) => EV.push(Object.assign({ t, type }, o));
+ev(0.15, 'seed'); [0.5, .9, 1.3].forEach((t, i) => ev(t, 'rule', { i }));
+[1.9, 2.15, 2.4, 2.65, 2.9, 3.15].forEach((t, i) => ev(t, 'chip', { i }));
+ev(4.5, 'select'); ev(6.5, 'move', { d: 2.3 }); ev(8.7, 'draw', { d: .8 });
+[9.3, 9.45, 9.6, 9.75, 9.9, 10.05].forEach((t, i) => ev(t, 'person', { i }));
+ev(10.8, 'card'); [11.25, 11.45, 11.65].forEach((t, i) => ev(t, 'row', { i }));
+ev(13.8, 'move', { d: 1.4 });
+[15.5, 15.7, 15.9, 16.1, 16.3, 16.5].forEach((t, i) => ev(t, 'hex', { i }));
+ev(16.6, 'draw', { d: 5.2 }); [18.0, 18.9, 19.8].forEach((t, i) => ev(t, 'type', { i, d: .7 }));
+ev(20.8, 'tick'); ev(23.6, 'whoosh', { d: 1.0 });
+ev(26.0, 'scan', { d: 3.4 }); [26.9, 27.9, 28.9].forEach((t, i) => ev(t, i < 2 ? 'pass' : 'fail', { i }));
+ev(30.0, 'verdict'); [31.0, 31.6, 32.2, 32.8, 33.4].forEach((t, i) => ev(t, 'print', { i }));
+ev(35.8, 'move', { d: 2.6 }); ev(38.4, 'diverge');
+[39.2, 39.35, 39.5].forEach((t, i) => ev(t, 'person', { i: i + 2 }));
+for (let i = 0; i < 9; i++) ev(39.9 + i * .07, 'cell', { i });
+ev(42.4, 'riser', { d: 2.6 }); M.spine.beads.forEach((y, i) => ev(43.3 + (M.spine.y0 - y) / (M.spine.y0 - M.spine.y1) * 1.7, 'bead', { i }));
+ev(45.0, 'draw', { d: 3.6 }); [45.6, 46.7, 47.8, 48.9].forEach((t, i) => ev(t, 'emblem', { i }));
+ev(50.0, 'pull', { d: 5 }); ev(55.0, 'reveal'); ev(55.6, 'row', { i: 9 }); ev(56.3, 'row', { i: 10 });
+window.EV = EV;
+
+// ===================== drawing primitives =====================
+let TX = [];
+const T = (id, text, x0, y0, x1, y1, pass = false) => TX.push({ id, text, x0, y0, x1, y1, pass });
+function font(w, size, fam = 'Inter', track = 0) { g.font = `${w} ${size}px ${fam}`; g.letterSpacing = track + 'px'; }
+function text(str, x, y, opt = {}) {
+  const { w = 500, size = 24, fam = 'Inter', track = 0, col = C.ink, align = 'left', id = null, pass = false, k = 1 } = opt;
+  font(w, size, fam, track); g.textAlign = align; g.textBaseline = 'alphabetic'; g.fillStyle = col;
+  g.fillText(str, x, y);
+  const m = g.measureText(str).width, x0 = align === 'left' ? x : align === 'center' ? x - m / 2 : x - m;
+  if (id) { const tr = g.getTransform(); T(id, str, tr.a * x0 + tr.e, tr.d * (y - size * .8) + tr.f, tr.a * (x0 + m) + tr.e, tr.d * (y + size * .25) + tr.f, pass); }
+  g.letterSpacing = '0px'; return m;
+}
+// text that rises from a slot on its baseline
+function slot(str, x, y, k, opt = {}) {
+  if (k <= 0) return 0; const size = opt.size || 24;
+  font(opt.w || 500, size, opt.fam || 'Inter', opt.track || 0); const m = g.measureText(str).width; g.letterSpacing = '0px';
+  const x0 = (opt.align || 'left') === 'left' ? x : opt.align === 'center' ? x - m / 2 : x - m;
+  g.save(); g.beginPath(); g.rect(x0 - 8, y - size * 1.05, m + 16, size * 1.4); g.clip();
+  text(str, x, y + (1 - eo5(k)) * size * 1.2, opt); g.restore(); return m;
+}
+function typeText(str, x, y, k, opt = {}) { // mono typing for records (reports full text for readcheck)
+  const n = Math.floor(str.length * clamp(k)); if (n <= 0) return;
+  const shown = str.slice(0, n);
+  text(shown, x, y, Object.assign({}, opt, { id: null }));
+  if (opt.id) { font(opt.w || 400, opt.size || 20, opt.fam || 'JBM'); const m = g.measureText(str).width; const tr = g.getTransform(); T(opt.id, str, tr.a * x + tr.e, tr.d * (y - 18) + tr.f, tr.a * (x + m) + tr.e, tr.d * (y + 6) + tr.f, opt.pass); g.letterSpacing = '0px'; }
+  if (k < 1) { font(opt.w || 400, opt.size || 20, opt.fam || 'JBM'); const m = g.measureText(shown).width; g.fillStyle = C.saffron; g.fillRect(x + m + 3, y - (opt.size || 20) * .8, (opt.size || 20) * .55, (opt.size || 20) * .95); g.letterSpacing = '0px'; }
+}
+function rrect(x, y, w, h, r) { g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); }
+function poly(n, r, rot = 0) { g.beginPath(); for (let i = 0; i < n; i++) { const a = rot + i / n * TAU; i ? g.lineTo(Math.cos(a) * r, Math.sin(a) * r) : g.moveTo(Math.cos(a) * r, Math.sin(a) * r); } g.closePath(); }
+// stroke a polyline partially (0..1 of its length)
+function partial(pts, k) {
+  if (k <= 0 || pts.length < 2) return; let L = 0; const d = [];
+  for (let i = 1; i < pts.length; i++) { const l = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); d.push(l); L += l; }
+  let rem = L * clamp(k); g.beginPath(); g.moveTo(pts[0][0], pts[0][1]);
+  for (let i = 1; i < pts.length && rem > 0; i++) { const f = Math.min(1, rem / d[i - 1]); g.lineTo(lerp(pts[i - 1][0], pts[i][0], f), lerp(pts[i - 1][1], pts[i][1], f)); rem -= d[i - 1]; }
+  g.stroke();
+}
+const triPts = (s, up) => up ? [[0, -s * .62], [s * .58, s * .38], [-s * .58, s * .38], [0, -s * .62]] : [[0, s * .62], [s * .58, -s * .38], [-s * .58, -s * .38], [0, s * .62]];
+const arcPts = (cx, cy, r, a0, a1, n = 64) => { const p = []; for (let i = 0; i <= n; i++) { const a = lerp(a0, a1, i / n); p.push([cx + Math.cos(a) * r, cy + Math.sin(a) * r]); } return p; };
+const lemPts = (th0, th1, n = 120) => { const p = []; for (let i = 0; i <= n; i++) { const q = lem(lerp(th0, th1, i / n)); p.push([q.x, q.y]); } return p; };
+
+// ---- emblems (drawn at origin, radius r) ----
+function emblem(kind, r, col, k = 1, filled = true) {
+  g.strokeStyle = col; g.fillStyle = col; g.lineCap = 'butt'; g.lineJoin = 'miter';
+  const lw = Math.max(1.5, r * .07); g.lineWidth = lw;
+  if (kind === 'hex') { poly(6, r, Math.PI / 6); g.stroke(); if (filled) { poly(6, r * .55 * k, Math.PI / 6); g.fill(); } }
+  if (kind === 'oct') { poly(8, r, Math.PI / 8); g.stroke(); g.lineWidth = lw * .6; poly(8, r * .66, Math.PI / 8); g.stroke(); }
+  if (kind === 'wheel') { g.beginPath(); g.arc(0, 0, r, 0, TAU); g.stroke(); g.beginPath(); g.arc(0, 0, r * .16, 0, TAU); g.fill(); for (let i = 0; i < 8; i++) { const a = i / 8 * TAU + k; g.beginPath(); g.moveTo(Math.cos(a) * r * .16, Math.sin(a) * r * .16); g.lineTo(Math.cos(a) * r, Math.sin(a) * r); g.stroke(); } }
+  if (kind === 'sun') {
+    g.beginPath(); g.arc(0, 0, r * .52, 0, TAU); g.stroke();
+    for (let i = 0; i < 16; i++) { const a = i / 16 * TAU, r0 = r * .66, r1 = r * (i % 2 ? .86 : 1); g.beginPath(); g.moveTo(Math.cos(a) * r0, Math.sin(a) * r0); g.lineTo(Math.cos(a) * r1, Math.sin(a) * r1); g.stroke(); }
+    g.beginPath(); for (let i = 0; i <= 80; i++) { const a = i / 80 * TAU * 1.6, rr = r * .05 + r * .3 * i / 80; i ? g.lineTo(Math.cos(a) * rr, Math.sin(a) * rr) : g.moveTo(Math.cos(a) * rr, Math.sin(a) * rr); } g.stroke();
+  }
+}
+
+// ===================== the mark, drawn in world space =====================
+// parts: k (0..1 draw progress), col, lw in screen px (world lw = px / cam.s), final (0..1 toward the finished mark)
+function drawMark(t, kParts, col, px, fin) {
+  g.save(); g.setTransform(cam.s, 0, 0, cam.s, W / 2 - cam.x * cam.s, H / 2 - cam.y * cam.s);
+  const lw = (base, finW) => lerp(px / cam.s, finW, fin);
+  g.strokeStyle = col; g.fillStyle = col; g.lineCap = 'butt'; g.lineJoin = 'round';
+  // crescent: outer arc below the horns, inner arc back (an open vessel, never filled)
+  const c = M.cres, horn = Math.acos((c.R * c.R - c.r * c.r + (c.iy - c.y) ** 2) / (2 * c.R * Math.abs(c.iy - c.y)));
+  const a0 = -Math.PI / 2 + horn, a1 = 3 * Math.PI / 2 - horn;
+  g.lineWidth = lw(0, 11);
+  partial(arcPts(c.x, c.y, c.R, a0, a1), kParts.cres);
+  // inner arc: points of the inner circle between the same horn tips
+  const tipL = P(c.x + Math.cos(a1) * c.R, c.y + Math.sin(a1) * c.R), tipR = P(c.x + Math.cos(a0) * c.R, c.y + Math.sin(a0) * c.R);
+  const b0 = Math.atan2(tipR.y - c.iy, tipR.x - c.ix), b1 = Math.atan2(tipL.y - c.iy, tipL.x - c.ix) + TAU * (Math.atan2(tipL.y - c.iy, tipL.x - c.ix) < b0 ? 1 : 0);
+  g.lineWidth = lw(0, 6);
+  partial(arcPts(c.ix, c.iy, c.r, b0, b1), kParts.cres);
+  // spine and beads
+  g.lineWidth = lw(0, 6);
+  partial([[M.spine.x, M.spine.y0], [M.spine.x, M.spine.y1]], kParts.spine);
+  M.spine.beads.forEach((y, i) => { const bk = clamp(kParts.beads * 5 - i); if (bk <= 0) return; g.beginPath(); g.arc(M.spine.x, y, lerp(7, 13, fin) * bk, 0, TAU); if (fin > .5 || kParts.beadFill > i) g.fill(); else { g.lineWidth = px / cam.s; g.stroke(); } });
+  // the loop (never filled)
+  g.lineWidth = lw(0, 11);
+  partial(lemPts(0, TAU, 240), kParts.loop);
+  // triangles (solid in the Prime mark)
+  [['triUp', true], ['triDown', false]].forEach(([key, up]) => {
+    const q = M[key], k = kParts[key]; if (k <= 0) return;
+    g.save(); g.translate(q.x, q.y); g.lineWidth = lw(0, 5);
+    partial(triPts(q.s, up), k); if (kParts[key + 'Fill'] > 0 || fin > 0) { g.globalAlpha = Math.max(fin, kParts[key + 'Fill'] || 0); g.beginPath(); triPts(q.s, up).forEach((p, i) => i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1])); g.fill(); }
+    g.restore();
+  });
+  // seed: the small form at the base
+  if (kParts.seed > 0) { g.save(); g.translate(M.seed.x, M.seed.y); const r = lerp(7, 16, fin) * kParts.seed; g.beginPath(); g.moveTo(0, -r * 1.9); g.quadraticCurveTo(r * 1.15, -r * .3, 0, r); g.quadraticCurveTo(-r * 1.15, -r * .3, 0, -r * 1.9); g.fill(); g.restore(); }
+  g.restore();
+}
+
+// ===================== background: paper, parallax construction dots =====================
+function background(t) {
+  g.setTransform(1, 0, 0, 1, 0, 0); g.fillStyle = C.surface; g.fillRect(0, 0, W, H);
+  // far layer: dot grid, parallax 0.35 of the camera, spacing fixed on screen
+  const sp = 48, ox = -((cam.x * cam.s * .35) % sp + sp) % sp, oy = -((cam.y * cam.s * .35) % sp + sp) % sp;
+  g.fillStyle = C.line;
+  for (let x = ox; x < W + sp; x += sp) for (let y = oy; y < H + sp; y += sp) g.fillRect(Math.round(x), Math.round(y), 2, 2);
+}
+
+// ===================== chapters =====================
+const UI = 1.38;
+const station = (anchor, sRef) => { const p = toS(anchor); return { x: p.x, y: p.y, k: cam.s / sRef * UI }; };
+function at(st, fn) { g.save(); g.setTransform(st.k, 0, 0, st.k, st.x, st.y); fn(); g.restore(); }
+const life = (t, a, b, fin = .6, fout = .6) => Math.min(eo(seg(t, a, a + fin)), 1 - ei(seg(t, b - fout, b)));
+
+// 0 · SEED — a real problem
+const THEMES = ['BIOMECHANICAL STRUCTURES', 'BIOSENSING & LIVING SIGNALS', 'THERMAL & ENERGY HABITATS', 'WATER, FLOW & HYDRAULICS', 'AUTONOMOUS PRODUCTION', 'RESILIENT BUILT ENVIRONMENT'];
+function chSeed(t) {
+  if (t > 8.2) return; const st = station(M.seed, 7.2), L = life(t, 0, 8.2, .2, 1.2);
+  at(st, () => {
+    g.globalAlpha = L;
+    // construction: crosshair + rings
+    g.strokeStyle = C.line; g.lineWidth = 1 / st.k;
+    partial([[-900, 0], [900, 0]], eio(seg(t, .4, 1.4))); partial([[0, -600], [0, 600]], eio(seg(t, .7, 1.7)));
+    [90, 180, 300].forEach((r, i) => { partial(arcPts(0, 0, r, -Math.PI / 2, 3 * Math.PI / 2), eio(seg(t, .9 + i * .2, 2.0 + i * .2))); });
+    g.fillStyle = C.muted; text('SEED · 00', 26, -22, { fam: 'JBM', size: 16, col: C.muted, w: 500, track: 2, id: 'seedlbl', pass: true });
+    text('x 0.000   y 425.000', 26, 42, { fam: 'JBM', size: 14, col: C.muted, id: 'seedxy', pass: true });
+    // the six parent themes converge, then one is selected
+    THEMES.forEach((name, i) => {
+      const a0 = -Math.PI / 2 + i / 6 * TAU + .3, ap = eo5(seg(t, 1.9 + i * .25, 2.7 + i * .25)); if (ap <= 0) return;
+      const chosen = i === 3, sel = eio(seg(t, 4.5, 5.05));
+      let r = lerp(700, 250, ap), x = Math.cos(a0) * r * 1.5, y = Math.sin(a0) * r * .85;
+      if (chosen) { x = lerp(x, 0, sel); y = lerp(y, 150, sel); }
+      font(600, 17, 'Inter', 2.2); const m = g.measureText(name).width; g.letterSpacing = '0px';
+      g.save(); g.translate(x, y); g.globalAlpha = L * (chosen ? 1 : lerp(1, .18, sel));
+      rrect(-m / 2 - 20, -22, m + 40, 44, 22); g.fillStyle = C.surface; g.fill();
+      g.lineWidth = (chosen && sel > 0 ? 2 : 1) / st.k * st.k; g.strokeStyle = chosen && sel > .5 ? C.saffron : C.ink; g.stroke();
+      text(name, 0, 6, { w: 600, size: 17, track: 2.2, align: 'center', col: chosen && sel > .5 ? C.saffron : C.ink, id: 'theme' + i, pass: !chosen || t < 4.5 });
+      g.restore();
+    });
+    if (t > 4.7) text('PARENT THEME · SELECTED', 0, 204, { fam: 'JBM', size: 14, col: C.muted, align: 'center', track: 2, id: 'selected', pass: true });
+  });
+}
+
+// 1 · TRIANGLE UP — what enters: students and requirements
+function chUp(t) {
+  if (t < 8.0 || t > 15.0) return; const st = station(M.triUp, 5.6), L = life(t, 8.0, 15.0, .5, .9);
+  at(st, () => {
+    g.globalAlpha = L;
+    text('UTILITY · WHAT ENTERS', 0, -235, { fam: 'JBM', size: 15, col: C.muted, align: 'center', track: 2.5, id: 'util', pass: true });
+    // the school's students converge: circles (people) with role rings
+    for (let i = 0; i < 6; i++) {
+      const k = eo5(seg(t, 9.3 + i * .15, 10.2 + i * .15)); if (k <= 0) continue;
+      const fx = -520 - (i % 3) * 70, fy = -60 + Math.floor(i / 3) * 90, tx = -270 - (i % 3) * 56, ty = -40 + Math.floor(i / 3) * 70;
+      const x = lerp(fx - 400, tx, k), y = lerp(fy, ty, k);
+      g.strokeStyle = C.ink; g.lineWidth = 1.5; g.beginPath(); g.arc(x, y, 20, 0, TAU); g.stroke();
+      g.fillStyle = C.ink; g.beginPath(); g.arc(x, y - 4, 6, 0, TAU); g.fill(); g.beginPath(); g.arc(x, y + 14, 11, Math.PI, TAU); g.fill();
+    }
+    const kl = eio(seg(t, 10.2, 10.9));
+    if (kl > 0) { g.strokeStyle = C.line; g.lineWidth = 1; partial([[-230, 0], [-110, 0]], kl); text('SCHOOL', -326, -86, { fam: 'JBM', size: 15, col: C.muted, track: 3, align: 'center', id: 'school' }); }
+    // industry's requirement card, slides in from the right
+    const kc = eo5(seg(t, 10.8, 11.6)); if (kc > 0) {
+      g.save(); g.translate(lerp(900, 0, kc), 0);
+      const x = 110, y = -170, w = 500, h = 330;
+      rrect(x, y, w, h, 12); g.fillStyle = C.alt; g.fill(); g.strokeStyle = C.line; g.lineWidth = 1; g.stroke();
+      g.save(); g.translate(x + 34, y + 44); g.fillStyle = C.saffron; g.beginPath(); triPts(18, true).forEach((p, i) => i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1])); g.fill(); g.restore();
+      text('REQUIREMENT', x + 58, y + 50, { fam: 'JBM', size: 16, w: 600, track: 3, col: C.saffron, id: 'req' });
+      rrect(x + w - 112, y + 26, 84, 32, 16); g.strokeStyle = C.ink; g.stroke(); text('OPEN', x + w - 70, y + 48, { fam: 'Inter', w: 600, size: 14, track: 2, align: 'center', id: 'open', pass: true });
+      text('Low-cost water filtration', x + 30, y + 112, { fam: 'SG', w: 600, size: 34, id: 'reqtitle' });
+      text('for a school campus', x + 30, y + 146, { w: 400, size: 22, col: C.muted, id: 'reqsub' });
+      const rows = [['POSTED BY', 'industry partner'], ['CRITERIA', 'a tested flow rate'], ['BUILDERS', 'paid 70% of value']];
+      rows.forEach((r, i) => { const k = seg(t, 11.25 + i * .2, 11.65 + i * .2); if (k <= 0) return; g.strokeStyle = C.line; g.beginPath(); g.moveTo(x + 30, y + 178 + i * 46); g.lineTo(x + w - 30, y + 178 + i * 46); g.stroke(); typeText(r[0], x + 30, y + 210 + i * 46, k * 2, { size: 16, col: C.muted, track: 2, id: 'rk' + i, pass: true }); typeText(r[1], x + 200, y + 210 + i * 46, k * 1.3, { size: 18, col: C.ink, id: 'rv' + i }); });
+      text('INDUSTRY', x + w / 2, y - 22, { fam: 'JBM', size: 15, col: C.muted, track: 3, align: 'center', id: 'industry' });
+      g.restore();
+      // the requirement line enters the triangle
+      g.strokeStyle = C.line; g.lineWidth = 1; partial([[110, 0], [70, 0]], kc);
+    }
+  });
+}
+
+// 2 · LEFT LOBE — the Studio: building
+function iso(x, y, z) { return [(x - y) * .866, (x + y) * .5 - z]; }
+const BUILD = (() => { // an isometric water filtration rig as line segments, drawn in order
+  const S = []; const box = (x0, y0, z0, w, d, h) => { const c = [[0, 0, 0], [w, 0, 0], [w, d, 0], [0, d, 0], [0, 0, h], [w, 0, h], [w, d, h], [0, d, h]].map(p => iso(x0 + p[0], y0 + p[1], z0 + p[2]));
+    [[0, 1], [1, 2], [2, 3], [3, 0], [4, 5], [5, 6], [6, 7], [7, 4], [0, 4], [1, 5], [2, 6], [3, 7]].forEach(e => S.push([c[e[0]], c[e[1]]])); };
+  const cyl = (x0, y0, z0, r, h) => { const n = 24; for (const z of [z0, z0 + h]) for (let i = 0; i < n; i++) { const a = i / n * TAU, b = (i + 1) / n * TAU; S.push([iso(x0 + Math.cos(a) * r, y0 + Math.sin(a) * r, z), iso(x0 + Math.cos(b) * r, y0 + Math.sin(b) * r, z)]); }
+    [Math.PI * .75, Math.PI * 1.75].forEach(a => S.push([iso(x0 + Math.cos(a) * r, y0 + Math.sin(a) * r, z0), iso(x0 + Math.cos(a) * r, y0 + Math.sin(a) * r, z0 + h)])); };
+  box(-150, -150, 0, 300, 300, 0);                    // the slab
+  for (let i = 1; i < 6; i++) S.push([iso(-150 + i * 50, -150, 0), iso(-150 + i * 50, 150, 0)]);
+  cyl(-60, -40, 120, 60, 130);                         // raised tank
+  [[-110, -80], [-10, -80], [-10, 0], [-110, 0]].forEach(p => S.push([iso(p[0], p[1], 0), iso(p[0], p[1], 120)])); // legs
+  S.push([iso(-60, 20, 120), iso(-60, 20, 60)], [iso(-60, 20, 60), iso(60, 20, 60)]);   // pipe
+  box(60, -10, 20, 70, 60, 80);                        // filter
+  for (let i = 1; i < 4; i++) S.push([iso(60, -10, 20 + i * 20), iso(130, -10, 20 + i * 20)]); // media layers
+  S.push([iso(95, 50, 20), iso(95, 110, 20)]); cyl(95, 120, 0, 20, 26);            // outlet + jar
+  return S;
+})();
+function chStudio(t) {
+  if (t < 14.0 || t > 25.0) return; const st = station(P(-130, 130), 4.3), L = life(t, 14.2, 24.8, .6, .5);
+  at(st, () => {
+    g.globalAlpha = L;
+    // six classes, hexagon chips: outline = in progress
+    for (let i = 0; i < 6; i++) {
+      const k = back(seg(t, 15.5 + i * .2, 16.0 + i * .2)); if (k <= 0) continue;
+      g.save(); g.translate(-300 + i * 64, -230); g.scale(k, k); g.strokeStyle = i === 3 ? C.saffron : C.ink; g.lineWidth = i === 3 ? 2 : 1.2; poly(6, 26, Math.PI / 6); g.stroke();
+      text(String(i + 1), 0, 7, { fam: 'JBM', w: 600, size: 18, align: 'center', col: i === 3 ? C.saffron : C.ink, id: 'cls' + i, pass: true }); g.restore();
+    }
+    if (t > 16.2) text('SIX CLASSES', 90, -224, { fam: 'JBM', size: 14, col: C.muted, track: 2.5, id: 'six' });
+    // the build drawing itself
+    const kb = seg(t, 16.6, 21.8), n = BUILD.length;
+    g.save(); g.translate(-150, 70); g.scale(.82, .82); g.strokeStyle = C.ink; g.lineWidth = 1.5;
+    BUILD.forEach((s, i) => { const k = clamp(kb * n * 1.15 - i * 1.15 / 1.0 * (n / n)); const kk = clamp((kb * (n + 8) - i) / 8); if (kk <= 0) return; g.beginPath(); g.moveTo(s[0][0], s[0][1]); g.lineTo(lerp(s[0][0], s[1][0], kk), lerp(s[0][1], s[1][1], kk)); g.stroke(); });
+    g.restore();
+    // the tool console: people direct, tools run
+    const kc = eo5(seg(t, 17.4, 18.0)); if (kc > 0) {
+      g.save(); g.translate(150 + (1 - kc) * 200, -150); g.globalAlpha = L * kc;
+      rrect(0, 0, 440, 360, 12); g.fillStyle = C.alt; g.fill(); g.strokeStyle = C.line; g.lineWidth = 1; g.stroke();
+      text('FLOW TEST', 24, 38, { fam: 'JBM', size: 15, w: 600, track: 2.5, col: C.ink, id: 'flowtest' });
+      const pk = eo(seg(t, 17.8, 18.3)); rrect(296, 18, 124, 30, 15); g.strokeStyle = C.pending; g.lineWidth = 1.5; g.stroke(); text('IN PROGRESS', 358, 39, { w: 600, size: 12, track: 1.5, col: C.pending, align: 'center', id: 'inprog', pass: pk < 1 });
+      typeText('> simulate flow  run 1', 24, 82, seg(t, 18.0, 18.7) , { size: 17, col: C.ink, id: 'cmd1', pass: true });
+      typeText('> simulate flow  run 2', 24, 110, seg(t, 18.9, 19.6), { size: 17, col: C.ink, id: 'cmd2', pass: true });
+      typeText('> simulate flow  run 3', 24, 138, seg(t, 19.8, 20.5), { size: 17, col: C.ink, id: 'cmd3', pass: true });
+      // plot
+      const gx = 24, gy = 170, gw = 392, gh = 160; g.strokeStyle = C.line; g.lineWidth = 1;
+      for (let i = 0; i <= 4; i++) { g.beginPath(); g.moveTo(gx, gy + i * gh / 4); g.lineTo(gx + gw, gy + i * gh / 4); g.stroke(); }
+      [[18.2, .45], [19.1, .7], [20.0, .92]].forEach(([t0, lvl], j) => { const k = seg(t, t0, t0 + .8); if (k <= 0) return; g.strokeStyle = j === 2 ? C.saffron : C.muted; g.lineWidth = j === 2 ? 2 : 1.2; const pts = []; for (let i = 0; i <= 60; i++) { const u = i / 60; pts.push([gx + u * gw, gy + gh - gh * lvl * (1 - Math.exp(-u * 5)) * (1 + .03 * Math.sin(u * 30 + j))]); } partial(pts, k); });
+      if (t > 20.8) text('run 3 · 128 L/h', gx + gw, gy - 8, { fam: 'JBM', size: 15, col: C.saffron, align: 'right', id: 'r3' });
+      g.restore();
+    }
+  });
+}
+
+// 3 · THE CROSSING — review: select, verdict, record
+const CLAIMS = ['Flow rate of at least 120 L/h', 'Water clears to a safe turbidity', 'Runs with no pump at all'];
+function chCrossing(t) {
+  if (t < 24.0 || t > 36.6) return; const st = station(P(0, 130), 6.6), L = life(t, 24.2, 36.6, .5, .8);
+  at(st, () => {
+    g.globalAlpha = L;
+    text('THE CROSSING · REVIEW', 0, -330, { fam: 'JBM', size: 15, col: C.muted, track: 2.5, align: 'center', id: 'cross' });
+    // the work's hexagon chip: outline → solid at the verdict
+    const vk = eo(seg(t, 30.0, 30.35));
+    g.save(); g.translate(0, -215); g.strokeStyle = C.ink; g.fillStyle = C.ink; g.lineWidth = 2; poly(6, 48, Math.PI / 6); g.stroke();
+    if (vk > 0) { poly(6, 48 * vk, Math.PI / 6); g.fill(); }
+    g.restore();
+    // status pill
+    const pill = vk > 0 ? ['CERTIFIED', C.pass, true] : ['IN REVIEW', C.pending, false];
+    font(700, 14, 'Inter', 2); const pw = g.measureText(pill[0]).width + 40; g.letterSpacing = '0px';
+    rrect(-pw / 2, -146, pw, 32, 16); if (pill[2]) { g.fillStyle = pill[1]; g.fill(); } else { g.strokeStyle = pill[1]; g.lineWidth = 1.5; g.stroke(); }
+    text(pill[0], 0, -124, { w: 700, size: 14, track: 2, align: 'center', col: pill[2] ? C.surface : pill[1], id: 'pill', pass: !pill[2] });
+    // claims (left): square = record
+    const ox = -600, oy = -40;
+    if (t > 25.0) text('CLAIMS', ox, oy - 34, { fam: 'JBM', size: 14, col: C.muted, track: 3, id: 'claimslbl', pass: true });
+    CLAIMS.forEach((c, i) => {
+      const k = eo5(seg(t, 25.0 + i * .2, 25.6 + i * .2)); if (k <= 0) return;
+      const tv = 26.9 + i, res = seg(t, tv, tv + .2), fail = i === 2, fall = fail ? ei(seg(t, 30.0, 30.9)) : 0;
+      g.save(); g.translate(ox + (1 - k) * -200, oy + i * 62 + fall * 260); g.globalAlpha = L * k * (1 - fall);
+      g.strokeStyle = res > 0 ? (fail ? C.fail : C.pass) : C.ink; g.lineWidth = 1.5; g.strokeRect(0, -18, 24, 24);
+      if (res > 0 && !fail) { g.fillStyle = C.pass; g.fillRect(0, -18, 24, 24 * res); g.strokeStyle = C.surface; g.lineWidth = 2.5; g.beginPath(); g.moveTo(5, -6); g.lineTo(10, 0); g.lineTo(20, -13); g.stroke(); }
+      const m = text(c, 42, 2, { w: 500, size: 24, col: fail && res > 0 ? C.fail : C.ink, id: 'claim' + i });
+      if (fail && res > 0) { g.strokeStyle = C.fail; g.lineWidth = 2; partial([[38, -6], [46 + m, -6]], res); g.fillStyle = C.fail; g.fillRect(0, -18, 24, 24); g.strokeStyle = C.surface; g.lineWidth = 2.5; g.beginPath(); g.moveTo(6, -12); g.lineTo(18, 0); g.moveTo(18, -12); g.lineTo(6, 0); g.stroke(); }
+      g.restore();
+    });
+    // the reviewer's scan line sweeps across the frame
+    const sk = seg(t, 26.0, 29.4);
+    if (sk > 0 && sk < 1) { const x = lerp(-900, 900, eio(sk)); g.strokeStyle = C.saffron; g.lineWidth = 2; g.beginPath(); g.moveTo(x, -280); g.lineTo(x, 280); g.stroke(); text('REVIEWER', x + 10, -262, { fam: 'JBM', size: 13, col: C.saffron, track: 2, id: 'rev', pass: true }); }
+    // the build record prints (right): radius 0, mono
+    const kr = eo5(seg(t, 30.5, 31.0)); if (kr > 0) {
+      const x = 80, y = -60, w = 470; g.save(); g.globalAlpha = L * kr; g.translate((1 - kr) * 160, 0);
+      g.fillStyle = C.alt; g.fillRect(x, y, w, 40); g.strokeStyle = C.ink; g.lineWidth = 1; g.strokeRect(x, y, w, 300);
+      text('BUILD RECORD', x + 18, y + 27, { fam: 'JBM', size: 15, w: 600, track: 3, id: 'brec' });
+      const rows = [['CERTIFICATE', 'SAM-ENG-2027-0042', C.ink], ['LEVEL', 'SL3', C.ink], ['TESTED', '2 claims · passed', C.pass], ['NOT CERTIFIED', '1 claim', C.fail], ['HASH', 'sha256 9f3a…c21e', C.muted]];
+      rows.forEach((r, i) => { const k = seg(t, 31.0 + i * .6, 31.5 + i * .6); if (k <= 0) return; typeText(r[0], x + 18, y + 82 + i * 46, k * 2, { size: 16, col: C.muted, track: 1.5, id: 'rk2' + i, pass: true }); typeText(r[1], x + 196, y + 82 + i * 46, k * 1.4, { size: 20, w: 500, col: r[2], id: 'rv2' + i }); });
+      g.restore();
+    }
+  });
+}
+
+// 4 · RIGHT LOBE + TRIANGLE DOWN — what is given back
+function chGive(t) {
+  if (t < 35.8 || t > 43.6) return; const st = station(M.triDown, 4.5), L = life(t, 36.4, 43.6, .6, .7);
+  at(st, () => {
+    g.globalAlpha = L;
+    text('FERTILITY · WHAT IS GIVEN BACK', 0, -150, { fam: 'JBM', size: 15, col: C.muted, track: 2.5, align: 'center', id: 'fert', pass: true });
+    const dk = seg(t, 38.4, 38.9);
+    // diverge: two lines leave the triangle
+    g.strokeStyle = C.line; g.lineWidth = 1;
+    partial([[-40, -10], [-300, -10]], eo(seg(t, 38.5, 39.0))); partial([[40, -10], [300, -10]], eo(seg(t, 38.5, 39.0)));
+    // builders: 70%
+    const kb = eo5(seg(t, 38.9, 39.5)); if (kb > 0) {
+      g.save(); g.translate(-470, -40); g.globalAlpha = L * kb;
+      text('70%', 0, -70, { fam: 'SG', w: 700, size: 96, col: C.saffron, align: 'center', track: -2, id: 'p70' });
+      text('TO THE BUILDERS', 0, -26, { w: 600, size: 18, track: 2.5, align: 'center', id: 'builders' });
+      for (let i = 0; i < 3; i++) { const k = back(seg(t, 39.2 + i * .15, 39.6 + i * .15)); if (k <= 0) continue; g.save(); g.translate(-70 + i * 70, 40); g.scale(k, k); g.strokeStyle = C.ink; g.lineWidth = 1.5; g.beginPath(); g.arc(0, 0, 22, 0, TAU); g.stroke(); g.fillStyle = C.ink; g.beginPath(); g.arc(0, -5, 7, 0, TAU); g.fill(); g.beginPath(); g.arc(0, 16, 12, Math.PI, TAU); g.fill(); g.restore(); }
+      g.restore();
+    }
+    // the Commons: 15%, open by default (squares = records anyone can use)
+    const kcm = eo5(seg(t, 39.6, 40.2)); if (kcm > 0) {
+      g.save(); g.translate(470, -40); g.globalAlpha = L * kcm;
+      text('15%', 0, -70, { fam: 'SG', w: 700, size: 96, col: C.ink, align: 'center', track: -2, id: 'p15' });
+      text('TO AN OPEN COMMONS', 0, -26, { w: 600, size: 18, track: 2.5, align: 'center', id: 'commons' });
+      for (let i = 0; i < 9; i++) { const k = back(seg(t, 39.9 + i * .07, 40.3 + i * .07)); if (k <= 0) continue; const cx = -48 + (i % 3) * 48, cy = 18 + Math.floor(i / 3) * 34; g.save(); g.translate(cx, cy); g.scale(k, k); g.strokeStyle = C.ink; g.lineWidth = 1.2; g.strokeRect(-14, -12, 28, 24); if (i % 4 === 0) { g.fillStyle = C.ink; g.fillRect(-14, -12, 28, 24); } g.restore(); }
+      text('OPEN LICENCE · BY DEFAULT', 0, 150, { fam: 'JBM', size: 13, col: C.muted, track: 2, align: 'center', id: 'openlic', pass: true });
+      g.restore();
+    }
+  });
+}
+
+// 5 · SPINE — gates, filled as the work rises
+function chSpine(t) {
+  if (t < 42.6 || t > 46.0) return; const L = life(t, 42.8, 46.0, .4, .5);
+  g.save(); g.globalAlpha = L;
+  M.spine.beads.forEach((y, i) => { const p = toS(P(M.spine.x, y)); text('GATE 0' + (i + 1), p.x + 40, p.y + 7, { fam: 'JBM', size: 19, col: C.muted, track: 2, id: 'gate' + i, pass: true }); });
+  g.restore();
+}
+
+// 6 · CRESCENT + EMBLEM — the arenas, one structure
+const ARENAS = [['hex', 'ENGINEERING ARENA', C.eng], ['oct', 'CREATIVE ARENA', C.cre], ['wheel', 'FORGE', C.forge], ['sun', 'PRIME · SAMATWAM', C.ink]];
+function chVessel(t) {
+  if (t < 45.0 || t > 51.0) return; const L = life(t, 45.2, 51.0, .5, .9);
+  const p = toS(P(M.emblem.x, M.emblem.y)), r = M.emblem.r * cam.s;
+  const idx = t < 46.7 ? 0 : t < 47.8 ? 1 : t < 48.9 ? 2 : 3, k0 = [45.6, 46.7, 47.8, 48.9][idx];
+  const pop = back(seg(t, k0, k0 + .35));
+  g.save(); g.globalAlpha = L; g.translate(p.x, p.y); g.scale(pop, pop);
+  if (t >= 45.6) emblem(ARENAS[idx][0], r * .8, ARENAS[idx][2], (t - k0) * .6, true);
+  g.restore();
+  // the list of arenas, right of the vessel
+  const lx = 120, ly = 330, kl = eo5(seg(t, 45.3, 45.9));
+  if (kl > 0) {
+    g.save(); g.globalAlpha = L * kl;
+    ARENAS.forEach((a, i) => {
+      const on = i === idx && t >= 45.6, y = ly + i * 58;
+      g.save(); g.translate(lx + 18, y - 8); emblem(a[0], 15, on ? a[2] : C.muted, 0, true); g.restore();
+      text(a[1], lx + 52, y, { w: on ? 700 : 500, size: 26, track: 2, col: on ? C.ink : C.muted, id: 'arena' + i });
+    });
+    g.restore();
+  }
+}
+
+// 7 · REVEAL — the path was the mark
+function chReveal(t) {
+  if (t < 55.0) return;
+  const x = 860;
+  slot('SAMATWAM', x, 520, seg(t, 55.0, 55.5), { fam: 'SG', w: 700, size: 132, track: 10, id: 'wordmark' });
+  slot('Build it. Prove it. Give it back.', x + 6, 590, seg(t, 55.6, 56.1), { w: 400, size: 40, col: C.ink, id: 'tag' });
+  const kl = eio(seg(t, 56.1, 56.7)); g.strokeStyle = C.line; g.lineWidth = 1; g.beginPath(); g.moveTo(x + 6, 632); g.lineTo(x + 6 + 760 * kl, 632); g.stroke();
+  slot('SAMATWAM ORG  ·  TOWARD VIKSIT BHARAT 2047', x + 6, 672, seg(t, 56.3, 56.8), { fam: 'JBM', w: 500, size: 18, track: 3, col: C.muted, id: 'org' });
+}
+
+
+// ===================== HUD: chapter label + spine progress (VS-1) =====================
+const CH = [[0, '01', 'SEED · A REAL PROBLEM'], [8.2, '02', 'WHAT ENTERS'], [14.0, '03', 'THE STUDIO'], [24.4, '04', 'THE CROSSING'], [35.8, '05', 'WHAT IS GIVEN BACK'], [42.5, '06', 'THE SPINE'], [45.0, '07', 'THE VESSEL'], [50.0, '', '']];
+function hud(t) {
+  const out = 1 - seg(t, 49.6, 50.2); if (out <= 0) return;
+  g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.globalAlpha = out;
+  let i = 0; while (i < CH.length - 1 && t >= CH[i + 1][0]) i++;
+  const [t0, n, name] = CH[i]; if (!n) { g.restore(); return; }
+  const kin = seg(t, t0 + .1, t0 + .6);
+  slot(n, 120, 112, kin, { fam: 'JBM', w: 600, size: 22, col: C.saffron, track: 2, id: 'chn' + n });
+  slot(name, 176, 112, seg(t, t0 + .2, t0 + .7), { fam: 'JBM', w: 500, size: 22, col: C.ink, track: 3, id: 'chname' + n });
+  g.strokeStyle = C.line; g.lineWidth = 1; g.beginPath(); g.moveTo(120, 132); g.lineTo(120 + 440 * eio(seg(t, .2, 1.2)), 132); g.stroke();
+  // spine progress, right edge: one bead per chapter, filled when passed
+  const x = W - 96, y0 = 300, y1 = 780; g.strokeStyle = C.line; g.beginPath(); g.moveTo(x, y0); g.lineTo(x, y1); g.stroke();
+  const prog = clamp(t / 50); g.strokeStyle = C.saffron; g.lineWidth = 2; g.beginPath(); g.moveTo(x, y0); g.lineTo(x, lerp(y0, y1, prog)); g.stroke();
+  for (let j = 0; j < 7; j++) { const y = lerp(y0, y1, CH[j][0] / 50), on = t >= CH[j][0]; g.beginPath(); g.arc(x, y, 7, 0, TAU); g.fillStyle = on ? C.saffron : C.surface; g.fill(); g.strokeStyle = on ? C.saffron : C.muted; g.lineWidth = 1.5; g.stroke(); }
+  text(String(Math.floor(t / 60)).padStart(2, '0') + ':' + String(Math.floor(t % 60)).padStart(2, '0'), W - 120, 112, { fam: 'JBM', size: 16, col: C.muted, align: 'right', track: 2, id: 'tc', pass: true });
+  g.restore();
+}
+
+// ===================== captions (English, Hindi beneath) =====================
+let CAPS_NOW = null;
+function captions(t) {
+  CAPS_NOW = null;
+  for (const [id, en, hi] of CAP) {
+    const a = VO[id] - .1, b = VO[id] + VOD[id] + .55; if (t < a || t > b) continue;
+    const k = Math.min(seg(t, a, a + .2), 1 - seg(t, b - .2, b));
+    g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.globalAlpha = k;
+    font(500, 32, 'Inter'); const m1 = g.measureText(en).width; font(500, 26, 'Deva'); const m2 = g.measureText(hi).width; g.letterSpacing = '0px';
+    const w = Math.max(m1, m2) + 56; g.fillStyle = C.surface; g.fillRect(W / 2 - w / 2, 928, w, 112);
+    g.fillStyle = C.saffron; g.fillRect(W / 2 - w / 2, 928, 3, 112);
+    text(en, W / 2, 972, { w: 500, size: 32, align: 'center', col: C.ink });
+    text(hi, W / 2, 1018, { fam: 'Deva', w: 500, size: 26, align: 'center', col: C.muted });
+    g.restore(); CAPS_NOW = id;
+  }
+}
+
+// ===================== frame =====================
+window.render = (t) => {
+  TX = []; cam = camAt(t);
+  background(t);
+  // the mark: faint construction of each part as its chapter is reached; complete and inked at the reveal
+  const fin = eio(seg(t, 52.6, 55.0)), pull = seg(t, 50.0, 54.8);
+  const parts = {
+    seed: Math.max(eo(seg(t, .1, .5)), fin),
+    triUp: Math.max(eio(seg(t, 8.6, 9.6)), fin), triUpFill: seg(t, 13.3, 13.8),
+    loop: Math.max(t > 15 ? .5 * eio(seg(t, 15.2, 24.6)) + .5 * eio(seg(t, 35.8, 43.0)) : 0, eio(pull)),
+    triDown: Math.max(eio(seg(t, 37.4, 38.4)), fin), triDownFill: seg(t, 38.3, 38.7),
+    spine: Math.max(eio(seg(t, 43.3, 45.0)), fin), beads: Math.max(seg(t, 43.0, 43.6), fin), beadFill: 5 * seg(t, 43.3, 45.0) + .5,
+    cres: Math.max(eio(seg(t, 45.0, 48.6)), fin),
+  };
+  // construction strokes stay light while chapters play; they ink up during the pull-back
+  const col = mixc(C.line, C.ink, Math.max(eio(seg(t, 50.0, 54.0)), 0)), px = lerp(2, 2.5, fin);
+  // the mark's loop is drawn as construction: lobes appear as their chapters arrive
+  drawMark(t, parts, col, px, fin);
+  // the chapter's own part of the mark, drawn in the active colour (saffron, 2 px) while its chapter plays
+  const hl = { seed: 0, triUp: 0, loop: 0, triDown: 0, spine: 0, beads: 0, cres: 0, beadFill: 0 };
+  const on = (a, b) => Math.min(eo(seg(t, a, a + .4)), 1 - seg(t, b - .5, b));
+  if (t > 8.4 && t < 14.6) { hl.triUp = parts.triUp * on(8.4, 14.6); hl.triUpFill = parts.triUpFill * on(8.4, 14.6); }
+  if (t > 37.2 && t < 43.0) { hl.triDown = parts.triDown * on(37.2, 43.0); hl.triDownFill = parts.triDownFill * on(37.2, 43.0); }
+  if (t > 43.0 && t < 45.6) { hl.spine = parts.spine; hl.beads = parts.beads; hl.beadFill = parts.beadFill; }
+  if (t > 45.0 && t < 50.4) hl.cres = parts.cres * (1 - seg(t, 49.8, 50.4));
+  if (t > 8.4 && t < 50.4) drawMark(t, hl, C.saffron, 2, 0);
+
+  // the traced path of the work, in saffron (the active path, 2 px)
+  const fadeTrace = 1 - eio(seg(t, 52.5, 54.6));
+  if (fadeTrace > 0) {
+    g.save(); g.strokeStyle = alpha(C.saffron, fadeTrace); g.lineWidth = 2; g.lineJoin = 'round'; g.beginPath();
+    const n = Math.max(2, Math.ceil(Math.min(t, 50) * 40)); for (let i = 0; i <= n; i++) { const p = toS(dotAt(Math.min(t, 50) * i / n)); i ? g.lineTo(p.x, p.y) : g.moveTo(p.x, p.y); } g.stroke(); g.restore();
+  }
+  // chapters
+  chSeed(t); chUp(t); chStudio(t); chCrossing(t); chGive(t); chSpine(t); chVessel(t); chReveal(t);
+  // the work itself: a saffron point (it settles into the emblem at the end)
+  const d = toS(dotAt(t)), dr = (t < .15 ? 0 : 9 * back(seg(t, .15, .5))) * (1 - seg(t, 49.4, 49.8));
+  if (dr > 0) { g.setTransform(1, 0, 0, 1, 0, 0); g.fillStyle = C.saffron; g.beginPath(); g.arc(d.x, d.y, dr, 0, TAU); g.fill(); g.strokeStyle = alpha(C.saffron, .35); g.lineWidth = 1; g.beginPath(); g.arc(d.x, d.y, dr + 8 + 4 * Math.sin(t * 5), 0, TAU); g.stroke(); }
+  // final emblem in the vessel (the Sun), inked with the mark
+  if (t >= 49.0) { const p = toS(P(M.emblem.x, M.emblem.y)); g.save(); g.translate(p.x, p.y); g.globalAlpha = seg(t, 49.0, 51.0); emblem('sun', M.emblem.r * .8 * cam.s, mixc(C.ink, C.ink, 1), 0, true); g.restore(); }
+  g.setTransform(1, 0, 0, 1, 0, 0); g.globalAlpha = 1;
+  hud(t); captions(t);
+};
+window.TEXTS = t => { window.render(t); return TX; };
+Promise.all(['400 20px Inter', '600 20px Inter', '700 20px SG', '500 20px JBM', '500 20px Deva'].map(f => document.fonts.load(f, f.includes('Deva') ? 'हर' : 'A'))).then(() => { window.render(0); window.READY = true; });
+</script></body></html>
