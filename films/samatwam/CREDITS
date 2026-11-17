@@ -1,0 +1,16 @@
+SAMATWAM — The Outline and the Record
+
+Typeface
+  Jost (variable), by Owen Earl (indestructible type*). SIL Open Font License 1.1.
+  Source: https://github.com/google/fonts/tree/main/ofl/jost
+
+Music and sound
+  All synthesized in code (mix.py): marimba, vibraphone, kalimba and plucked bass by modal synthesis;
+  foley from the library's procedural sfx.py. No samples, no recordings.
+
+Picture
+  Drawn in code (index.html, Canvas 2D). No images, footage or generated imagery.
+
+Tools
+  Lemo-Opuscar film library (render, mux): https://github.com/lemomo-ai/lemo-opuscar
+  FFmpeg 9 (imageio-ffmpeg build) for encoding.

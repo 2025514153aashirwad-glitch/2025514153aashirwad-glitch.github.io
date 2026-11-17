@@ -1,0 +1,303 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Samatwam — The Outline and the Record</title>
+<style>
+@font-face { font-family: 'Jost'; src: url('fonts/Jost.ttf') format('truetype'); font-weight: 100 900; }
+html, body { margin: 0; background: #F4F3EF; overflow: hidden; }
+canvas { display: block; }
+</style></head>
+<body><canvas id="c" width="1920" height="1080"></canvas>
+<script>
+// ---------- helpers ----------
+const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
+const lerp = (a, b, t) => a + (b - a) * t;
+const seg = (t, a, b) => clamp((t - a) / (b - a));
+const eio = t => { t = clamp(t); return t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; };
+const eo = t => 1 - Math.pow(1 - clamp(t), 3);
+const ei = t => Math.pow(clamp(t), 3);
+const back = (t, s = 1.7) => { t = clamp(t) - 1; return 1 + t * t * ((s + 1) * t + s); };
+function mulberry(seed) { return function () { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const TAU = Math.PI * 2;
+// keyframes [[t, v], ...] with eased (cubic in-out) segments
+function keys(K) { return t => { if (t <= K[0][0]) return K[0][1]; for (let i = 0; i < K.length - 1; i++) { const [a, va] = K[i], [b, vb] = K[i + 1]; if (t <= b) { const e = K[i + 1][2] || eio; return lerp(va, vb, e(seg(t, a, b))); } } return K[K.length - 1][1]; }; }
+
+// ---------- palette (six roles) ----------
+const PAPER = '#F4F3EF', INK = '#141414', SEC = '#E2E2E0', FIELD = '#5A5A5A', PIVOT = '#1F7A3A', GOLD = '#B8933B';
+const mix = (c1, c2, k) => { const a = parseInt(c1.slice(1), 16), b = parseInt(c2.slice(1), 16); const ch = s => Math.round(lerp((a >> s) & 255, (b >> s) & 255, k)); return `rgb(${ch(16)},${ch(8)},${ch(0)})`; };
+
+const W = 1920, H = 1080, cv = document.getElementById('c'), g = cv.getContext('2d');
+const BPM = 100, BEAT = 60 / BPM, BAR = BEAT * 4;           // 0.6 s, 2.4 s
+window.DUR = 50.0;
+
+// ---------- world ----------
+const R = 270, CELL = 45, GAP = 4, CY = 540, BASE = CY + R; // path line sits on the claim's bottom tangent
+const ST = [ { x: 1500, name: 'WEBSITE' }, { x: 3000, name: 'STUDIO' }, { x: 4500, name: 'REVIEW DESK' }, { x: 6000, name: 'REGISTRY' } ];
+// cells: centres inside the claimed outline
+const CELLS = [];
+for (let i = -6; i <= 6; i++) for (let j = -6; j <= 6; j++) { const x = i * CELL, y = j * CELL; if (x * x + y * y <= R * R) CELLS.push({ x, y }); }
+const N = CELLS.length; // 113
+// fill order: seeded shuffle, the centre cell first
+{ const rnd = mulberry(7); const c0 = CELLS.findIndex(c => c.x === 0 && c.y === 0); const first = CELLS.splice(c0, 1)[0];
+  for (let i = CELLS.length - 1; i > 0; i--) { const k = Math.floor(rnd() * (i + 1)); [CELLS[i], CELLS[k]] = [CELLS[k], CELLS[i]]; }
+  CELLS.unshift(first); }
+// landing times
+const LAND = []; const batch = (n, a, b) => { for (let k = 0; k < n; k++) LAND.push(a + (b - a) * (n === 1 ? 0 : k / (n - 1))); };
+batch(1, 6.0, 6.0);                       // the first pixel
+batch(13, 13.8, 17.1);                    // website   → 14
+batch(32, 19.8, 23.4);                    // studio    → 46
+batch(51, 27.0, 30.6);                    // review    → 97
+const LAST = N - LAND.length;             // 16
+for (let k = 0; k < LAST; k++) LAND.push(34.65 + k * 0.25);   // last one lands at 38.4 (bar 17, beat 1)
+const T_HELD = LAND[LAND.length - 1];
+CELLS.forEach((c, i) => c.t = LAND[i]);
+const countAt = t => LAND.filter(x => x <= t).length;
+
+// claim position along the line
+const CX = keys([[0, 0], [12.0, 0], [13.2, ST[0].x], [18.0, ST[0].x], [19.2, ST[1].x], [24.0, ST[1].x], [25.2, ST[2].x], [31.2, ST[2].x], [32.0, ST[3].x, t => eio(t)]]);
+// camera: centre x offset from the claim, centre y, scale
+const camX = t => {
+  if (t < 9.6) return lerp(0, 420, eio(seg(t, 4.8, 9.6)));
+  if (t < 12) return lerp(420, 2900, eio(seg(t, 9.6, 12)));
+  if (t < 13.4) return lerp(2900, CX(13.4) + 300, eio(seg(t, 12, 13.4)));
+  if (t < 40.8) { const k = t < 31.2 ? 300 : 300; return CX(t) + k; }
+  return lerp(CX(40.8) + 300, CX(40.8), eio(seg(t, 40.8, 43.4)));
+};
+const camY = keys([[0, CY + 40], [9.6, CY + 40], [12, CY + 270], [13.4, CY + 40], [24, CY + 40], [25.4, CY + 90], [31.2, CY + 90], [32, CY + 40], [40.8, CY + 40], [43.4, CY]]);
+const camS = keys([[0, .9], [4.8, .9], [9.6, 1.1], [12, .3], [13.4, .86], [18, .9], [19.2, .96], [24, .98], [25.4, .86], [31.2, .88], [32, .92], [34.4, .92], [38.4, 1.06], [40.8, 1.08], [43.6, 5.0, ei]]);
+
+// ---------- paper finish (static) ----------
+const paper = document.createElement('canvas'); paper.width = W; paper.height = H;
+{ const p = paper.getContext('2d'), im = p.createImageData(W, H), rnd = mulberry(11);
+  for (let i = 0; i < W * H; i++) { const fib = (rnd() - .5) * 14 + (rnd() < .004 ? -10 : 0); const v = 128 + fib; im.data[i * 4] = im.data[i * 4 + 1] = im.data[i * 4 + 2] = v; im.data[i * 4 + 3] = 255; }
+  p.putImageData(im, 0, 0); }
+
+// ---------- events for the mix ----------
+const EV = [];
+[0.15, 0.45, 0.75, 1.05, 1.35, 1.65].forEach((t, i) => EV.push({ t, type: 'rule', i }));
+EV.push({ t: 1.8, type: 'compass', d: 1.4 });
+EV.push({ t: 3.3, type: 'rise' });
+LAND.forEach((t, i) => EV.push({ t, type: 'pixel', i, n: i + 1 }));
+EV.push({ t: 9.75, type: 'rule', i: 9 }); EV.push({ t: 10.2, type: 'path', d: 1.6 });
+[12.0, 18.0, 24.0].forEach(t => EV.push({ t, type: 'slide', d: 1.2 }));
+EV.push({ t: 19.4, type: 'rise' }); EV.push({ t: 26.0, type: 'clack' }); EV.push({ t: 26.4, type: 'rise' });
+EV.push({ t: 31.2, type: 'whoosh', d: .8 });
+EV.push({ t: T_HELD, type: 'held' }); EV.push({ t: T_HELD + .5, type: 'rise' });
+EV.push({ t: 41.2, type: 'swell', d: 2.8 }); EV.push({ t: 44.0, type: 'open' });
+EV.push({ t: 45.2, type: 'rise' }); [46.0, 46.3].forEach(t => EV.push({ t, type: 'rule', i: 20 }));
+window.EV = EV;
+
+// ---------- drawing ----------
+let TX = [];  // texts visible this frame
+let cam = { x: 0, y: 0, s: 1 };
+const sx = x => (x - cam.x) * cam.s + W / 2, sy = y => (y - cam.y) * cam.s + H / 2;
+function worldTransform() { g.setTransform(cam.s, 0, 0, cam.s, W / 2 - cam.x * cam.s, H / 2 - cam.y * cam.s); }
+function screenTransform() { g.setTransform(1, 0, 0, 1, 0, 0); }
+
+// line from (x0,y0) to (x1,y1), drawn up to fraction a, retracted from the start by fraction r
+function rule(x0, y0, x1, y1, a, r = 0, w = 2, col = INK) {
+  if (a <= r) return; g.strokeStyle = col; g.lineWidth = w; g.lineCap = 'butt';
+  g.beginPath(); g.moveTo(lerp(x0, x1, r), lerp(y0, y1, r)); g.lineTo(lerp(x0, x1, a), lerp(y0, y1, a)); g.stroke();
+}
+// text that rises out of a slot on its baseline (k: 0→1 in, then 1→2 sinks back out)
+function slotText(str, x, y, size, weight, track, col, k, id, align = 'left', world = true) {
+  if (k <= 0 || k >= 2) return;
+  g.font = `${weight} ${size}px Jost`; g.letterSpacing = track + 'px'; g.textAlign = align; g.textBaseline = 'alphabetic';
+  const w = g.measureText(str).width, x0 = align === 'left' ? x : align === 'center' ? x - w / 2 : x - w;
+  const asc = size * .8, desc = size * .25;
+  const off = k <= 1 ? (1 - eo(k)) * (asc + desc) : ei(k - 1) * -(asc + desc) * 0 + ei(k - 1) * (asc + desc);
+  g.save(); g.beginPath(); g.rect(x0 - 10, y - asc - 4, w + 20, asc + desc + 8); g.clip();
+  g.fillStyle = col; g.fillText(str, x, y + off); g.restore();
+  g.letterSpacing = '0px';
+  // report on-screen box (full text, from its first visible frame)
+  const p0 = world ? [sx(x0), sy(y - asc)] : [x0, y - asc], p1 = world ? [sx(x0 + w), sy(y + desc)] : [x0 + w, y + desc];
+  TX.push({ id, text: str, x0: p0[0], y0: p0[1], x1: p1[0], y1: p1[1] });
+}
+// text revealed left to right
+function revealText(str, x, y, size, weight, track, col, k, id) {
+  if (k <= 0) return;
+  g.font = `${weight} ${size}px Jost`; g.letterSpacing = track + 'px'; g.textAlign = 'left'; g.textBaseline = 'alphabetic';
+  const w = g.measureText(str).width;
+  g.save(); g.beginPath(); g.rect(x - 4, y - size, (w + 8) * eio(k), size * 1.4); g.clip(); g.fillStyle = col; g.fillText(str, x, y); g.restore();
+  g.letterSpacing = '0px';
+  TX.push({ id, text: str, x0: sx(x), y0: sy(y - size * .8), x1: sx(x + w), y1: sy(y + size * .25) });
+}
+
+function stageBlock(t, cx) {
+  // stage numeral + name, to the right of the claim, sharing its centre line
+  const x = cx + R + 110, y = CY - 40;
+  const S = [ { a: 2.9, b: 19.2, n: '01', w: 'CLAIMED' }, { a: 19.4, b: 26.0, n: '02', w: 'ADMITTED' }, { a: 26.4, b: T_HELD + .2, n: '03', w: 'SUBMITTED' }, { a: T_HELD + .5, b: 99, n: '04', w: 'HELD' } ];
+  for (const s of S) {
+    const k = t < s.b ? seg(t, s.a, s.a + .5) : 1 + seg(t, s.b, s.b + .35);
+    const col = s.n === '04' ? INK : INK;
+    slotText(s.n, x, y, 170, 800, -6, col, k, 'num' + s.n);
+    slotText(s.w, x + 6, y + 62, 40, 700, 5, col, k <= 1 ? seg(t, s.a + .15, s.a + .65) : k, 'stage' + s.n);
+  }
+}
+
+function drawClaim(t, cx) {
+  const hk = seg(t, T_HELD, T_HELD + .8);           // held transition
+  const hold = eio(hk);
+  // empty cells (pale), visible once the outline is drawn
+  const emptyK = seg(t, 3.0, 3.9);
+  const gap = lerp(GAP, 0, hold);
+  g.save();
+  if (hk > 0) { g.beginPath(); g.arc(cx, CY, lerp(R + 40, R, eo(hk * 1.6)), 0, TAU); g.clip(); }
+  if (emptyK > 0 && hold < 1) {
+    g.fillStyle = SEC;
+    CELLS.forEach((c, i) => { const ap = seg(emptyK, (i % 13) / 26, (i % 13) / 26 + .5); if (ap <= 0) return; const sz = (CELL - gap) * ap; g.fillRect(cx + c.x - sz / 2, CY + c.y - sz / 2, sz, sz); });
+  }
+  if (hold > 0) { g.fillStyle = mix(FIELD, GOLD, hold); g.beginPath(); g.arc(cx, CY, lerp(R - 36, R, eo(hk * 1.2)), 0, TAU); g.fill(); }
+  // recorded pixels
+  const col = hold > 0 ? mix(FIELD, GOLD, hold) : FIELD;
+  g.fillStyle = col;
+  CELLS.forEach(c => {
+    const fall = .38, t0 = c.t - fall;
+    if (t < t0) return;
+    const f = seg(t, t0, c.t), dy = (1 - ei(f)) * -420;
+    const sq = t >= c.t ? 1 - .22 * Math.exp(-(t - c.t) * 22) * Math.cos((t - c.t) * 40) : 1;
+    const s = CELL - gap, wv = s * (2 - sq), hv = s * sq;
+    g.fillRect(cx + c.x - wv / 2, CY + c.y + s / 2 - hv + dy - (s - s) , wv, hv);
+  });
+  g.restore();
+  // the claimed outline (compass circle), ink; retracts once held
+  const ok = eio(seg(t, 1.8, 3.2));
+  const retr = eio(seg(t, T_HELD + .3, T_HELD + 1.2));
+  if (ok > retr) { g.strokeStyle = INK; g.lineWidth = 3; g.beginPath(); g.arc(cx, CY, R + 14, -Math.PI / 2 + TAU * retr, -Math.PI / 2 + TAU * ok); g.stroke(); }
+  // compass cross at the centre
+  const ck = seg(t, 1.6, 1.9) - seg(t, 9.0, 9.4);
+  if (ck > 0 && t < 9.4) { g.strokeStyle = INK; g.lineWidth = 2; const L = 18 * ck; g.beginPath(); g.moveTo(cx - L, CY); g.lineTo(cx + L, CY); g.moveTo(cx, CY - L); g.lineTo(cx, CY + L); g.stroke(); }
+}
+
+function drawCounter(t, cx) {
+  if (t < 12.6 || t > T_HELD + .35) return;
+  const n = countAt(t), x = cx + R + 116, y = CY + 170;
+  const k = seg(t, 12.6, 13.1) - 0;
+  const prev = Math.max(12.6, ...LAND.filter(l => l <= t)), nxt = Math.min(T_HELD + .35, ...LAND.filter(l => l > t)); const changing = nxt - prev < 2.2;
+  const out = seg(t, T_HELD, T_HELD + .35);
+  const kk = out > 0 ? 1 + out : k;
+  slotText(`${n} / ${N}`, x, y, 58, 800, -2, INK, kk, 'count');
+  if (changing) TX[TX.length - 1] && (TX[TX.length - 1].pass = true);
+  slotText('PIXELS RECORDED', x + 2, y + 44, 28, 600, 5, FIELD === FIELD ? INK : INK, kk, 'countlbl');
+}
+
+function drawPath(t) {
+  // baseline grows from the claim into the path through the four touchpoints
+  const a = eio(seg(t, 10.2, 11.8));
+  if (t >= 10.2) {
+    rule(-R - 400, BASE, 6600, BASE, lerp((R + 400) / (6600 + R + 400), 1, a), 0, 5, INK);
+  }
+  ST.forEach((s, i) => {
+    const k = seg(t, 10.6 + i * .3, 11.1 + i * .3);
+    if (k <= 0) return;
+    // tick: a small triangle under the line
+    g.fillStyle = INK; const tw = 18 * back(k); g.beginPath(); g.moveTo(s.x - tw, BASE + 30); g.lineTo(s.x + tw, BASE + 30); g.lineTo(s.x, BASE + 4); g.closePath(); g.fill();
+    // label slides out from under the line
+    g.font = '600 30px Jost'; g.letterSpacing = '4px'; g.textAlign = 'center'; const w = g.measureText(s.name).width;
+    const ly = BASE + 78, off = (1 - eo(seg(t, 10.8 + i * .3, 11.5 + i * .3))) * -60;
+    g.save(); g.beginPath(); g.rect(s.x - w / 2 - 20, BASE + 36, w + 40, 60); g.clip(); g.fillStyle = INK; g.fillText(s.name, s.x, ly + off); g.restore(); g.letterSpacing = '0px';
+    TX.push({ id: 'st' + i, text: s.name, x0: sx(s.x - w / 2), y0: sy(ly - 24), x1: sx(s.x + w / 2), y1: sy(ly + 8), pass: t < 13.4 });
+  });
+}
+
+function drawGrid(t) {
+  // construction lines laid out for the claim, then retracted (the baseline stays as the path)
+  const L = [ [-900, CY - R, 900, CY - R], [-900, CY, 900, CY], [-900, BASE, 900, BASE], [-R, CY - R - 260, -R, BASE + 200], [0, CY - R - 260, 0, BASE + 200], [R, CY - R - 260, R, BASE + 200] ];
+  L.forEach((l, i) => { const a = eio(seg(t, .15 + i * .3, .75 + i * .3)), r = eio(seg(t, 9.6 + i * .08, 10.3 + i * .08)); if (i === 2 && t > 10.2) return; rule(l[0], l[1], l[2], l[3], a, r, 2, INK); });
+}
+
+function drawReviewBase(t) {
+  // pivot: the green base slides in along the grid and locks — the check from outside
+  const k = seg(t, 25.0, 26.0); if (k <= 0) return;
+  const x = ST[2].x, w = 2 * R + 120, h = 80, y = BASE + 104;
+  const xo = lerp(900, 0, back(k, 1.4));
+  g.fillStyle = PIVOT; g.fillRect(x - w / 2 + xo, y, w, h);
+  const lk = seg(t, 26.2, 26.8);
+  if (lk > 0) {
+    g.font = '600 30px Jost'; g.letterSpacing = '5px'; g.textAlign = 'center'; const str = 'CHECKED FROM OUTSIDE', tw = g.measureText(str).width;
+    g.save(); g.beginPath(); g.rect(x - tw / 2 - 10, y + 18, tw + 20, 52); g.clip(); g.fillStyle = PAPER; g.fillText(str, x + xo, y + 56 + (1 - eo(lk)) * 50); g.restore(); g.letterSpacing = '0px';
+    TX.push({ id: 'checked', text: str, x0: sx(x - tw / 2), y0: sy(y + 30), x1: sx(x + tw / 2), y1: sy(y + 64) });
+  }
+}
+
+function drawRuleLine(t, cx) {
+  // the one rule, read close, under the stage block
+  if (t < 5.0 || t > 10.2) return;
+  const k = seg(t, 5.0, 5.8), out = seg(t, 9.7, 10.1);
+  if (out >= 1) return;
+  const x = cx + R + 116, y = CY + 150;
+  g.save(); if (out > 0) { g.beginPath(); g.rect(x - 10 + 1400 * eio(out), y - 60, 1400, 140); g.clip(); }
+  revealText('1 PIXEL', x, y, 64, 800, -2, INK, k, 'rule1');
+  revealText('= 1 RECORDED, CHECKABLE EVENT', x + 2, y + 50, 30, 300, 7, INK, seg(t, 5.3, 6.1), 'rule2');
+  g.restore();
+}
+
+function drawEnd(t) {
+  // pull out of the gold: the plane shrinks to a point, the full stop of the wordmark
+  screenTransform();
+  g.fillStyle = PAPER; g.fillRect(0, 0, W, H);
+  g.font = '800 168px Jost'; g.letterSpacing = '-4px'; g.textAlign = 'left';
+  const word = 'SAMATWAM', ww = g.measureText(word).width, wx = W / 2 - (ww + 70) / 2, wy = 520;
+  const dotX = wx + ww + 52, dotY = wy - 22, dotR = 26;
+  const k = eio(seg(t, 44.0, 45.4));
+  const rr = lerp(1300, dotR, k), px = lerp(W / 2, dotX, k), py = lerp(H / 2, dotY, k);
+  g.letterSpacing = '0px';
+  // grid for the end card
+  const gl = seg(t, 45.0, 45.8), gr = seg(t, 48.2, 49.0);
+  rule(wx - 60, wy, wx + ww + 140, wy, gl, 0, 2, INK);
+  const kw = seg(t, 45.2, 45.8);
+  slotText(word, wx, wy, 168, 800, -4, INK, kw, 'word', 'left', false);
+  g.fillStyle = GOLD; g.beginPath(); g.arc(px, py, rr, 0, TAU); g.fill();
+  const lk = seg(t, 46.0, 46.8);
+  if (lk > 0) {
+    g.font = '300 30px Jost'; g.letterSpacing = '14px'; g.textAlign = 'center'; const str = 'SHARPNESS IS ONLY WHAT IS RECORDED', sw = g.measureText(str).width;
+    g.save(); g.beginPath(); g.rect(W / 2 - sw / 2 - 10, 560, (sw + 20) * eio(lk), 60); g.clip(); g.fillStyle = INK; g.fillText(str, W / 2 + 7, 600); g.restore(); g.letterSpacing = '0px';
+    TX.push({ id: 'tag', text: str, x0: W / 2 - sw / 2, y0: 576, x1: W / 2 + sw / 2, y1: 608 });
+  }
+  // the four marks, ruled in ink
+  const marks = ['PRIME', 'CREATIVE', 'ENGINEERING', 'FORGE'];
+  marks.forEach((m, i) => {
+    const mk = eio(seg(t, 46.6 + i * .25, 47.3 + i * .25)); if (mk <= 0) return;
+    const x = W / 2 + (i - 1.5) * 300, y = 740, r = 46;
+    g.strokeStyle = INK; g.lineWidth = 3; g.lineCap = 'butt';
+    if (i === 0) { // sun
+      g.beginPath(); g.arc(x, y, r * .55, -Math.PI / 2, -Math.PI / 2 + TAU * mk); g.stroke();
+      for (let k2 = 0; k2 < 12; k2++) { const a = k2 / 12 * TAU, rk = seg(mk, k2 / 24, k2 / 24 + .5); if (rk <= 0) continue; g.beginPath(); g.moveTo(x + Math.cos(a) * r * .75, y + Math.sin(a) * r * .75); g.lineTo(x + Math.cos(a) * r * lerp(.75, 1.05, rk), y + Math.sin(a) * r * lerp(.75, 1.05, rk)); g.stroke(); }
+    } else if (i === 1 || i === 2) { // octagon / hexagon
+      const n = i === 1 ? 8 : 6, off = i === 1 ? Math.PI / 8 : 0, tot = n * mk;
+      g.beginPath(); for (let k2 = 0; k2 <= Math.ceil(tot); k2++) { const kk = Math.min(k2, tot), a = off + kk / n * TAU - Math.PI / 2; const a0 = off + Math.floor(kk) / n * TAU - Math.PI / 2, a1 = off + Math.ceil(kk) / n * TAU - Math.PI / 2, fr = kk - Math.floor(kk);
+        const px2 = lerp(Math.cos(a0), Math.cos(a1), fr) * r, py2 = lerp(Math.sin(a0), Math.sin(a1), fr) * r; if (k2 === 0) g.moveTo(x + px2, y + py2); else g.lineTo(x + px2, y + py2); }
+      g.stroke();
+    } else { // wheel
+      g.beginPath(); g.arc(x, y, r, -Math.PI / 2, -Math.PI / 2 + TAU * mk); g.stroke();
+      g.beginPath(); g.arc(x, y, 7, 0, TAU); g.stroke();
+      for (let k2 = 0; k2 < 6; k2++) { const a = k2 / 6 * TAU, rk = seg(mk, .3 + k2 / 20, .6 + k2 / 20); if (rk <= 0) continue; g.beginPath(); g.moveTo(x + Math.cos(a) * 7, y + Math.sin(a) * 7); g.lineTo(x + Math.cos(a) * lerp(7, r, rk), y + Math.sin(a) * lerp(7, r, rk)); g.stroke(); }
+    }
+    g.font = '600 24px Jost'; g.letterSpacing = '4px'; g.textAlign = 'center';
+    const lw = g.measureText(m).width, ly = y + r + 52, lo = (1 - eo(seg(t, 47.0 + i * .25, 47.5 + i * .25))) * 34;
+    g.save(); g.beginPath(); g.rect(x - lw / 2 - 10, ly - 22, lw + 20, 32); g.clip(); g.fillStyle = INK; g.fillText(m, x + 2, ly + lo); g.restore(); g.letterSpacing = '0px';
+    TX.push({ id: 'mark' + i, text: m, x0: x - lw / 2, y0: ly - 18, x1: x + lw / 2, y1: ly + 6 });
+  });
+}
+
+window.render = (t) => {
+  TX = [];
+  screenTransform(); g.fillStyle = PAPER; g.fillRect(0, 0, W, H);
+  if (t >= 44.0) { drawEnd(t); }
+  else {
+    const cx = CX(t);
+    cam = { x: camX(t), y: camY(t), s: camS(t) };
+    worldTransform();
+    drawGrid(t);
+    drawPath(t);
+    drawReviewBase(t);
+    drawClaim(t, cx);
+    // labels fall away once the push into the gold begins
+    if (t < 40.9) { stageBlock(t, cx); drawCounter(t, cx); drawRuleLine(t, cx); }
+    screenTransform();
+  }
+  // paper finish
+  g.globalCompositeOperation = 'soft-light'; g.globalAlpha = .55; g.drawImage(paper, 0, 0); g.globalAlpha = 1; g.globalCompositeOperation = 'source-over';
+};
+window.TEXTS = (t) => { window.render(t); return TX.filter(b => b.x1 > 0 && b.x0 < W && b.y1 > 0 && b.y0 < H || true); };
+
+Promise.all(['300', '600', '700', '800'].map(w => document.fonts.load(`${w} 40px Jost`))).then(() => { window.render(0); window.READY = true; });
+</script></body></html>
