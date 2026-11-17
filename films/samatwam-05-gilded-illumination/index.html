@@ -1,0 +1,202 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Samatwam 05 — The Threaded Map</title>
+<style>@font-face{font-family:Inter;src:url(fonts/Inter.ttf) format('truetype');font-weight:100 900}
+@font-face{font-family:SG;src:url(fonts/SpaceGrotesk.ttf) format('truetype');font-weight:300 700}
+@font-face{font-family:Deva;src:url(fonts/NotoSansDevanagari.ttf) format('truetype');font-weight:100 900}
+html,body{margin:0;background:#101a4a;overflow:hidden}canvas{display:block}</style></head>
+<body><canvas id="c" width="1920" height="1080"></canvas>
+<script src="common.js"></script>
+<script>
+const { clamp, lerp, seg, eio, eo, ei, back, hash, F } = SK;
+const W = 1920, H = 1080, BEAT = 1.0;     // 60 BPM
+window.DUR = 60.0;
+const cv = document.getElementById('c'), g = cv.getContext('2d');
+const VO = { l1: 6.0, l2: 21.0, l3: 25.6, l4: 38.0, l5: 50.6 }, VOD = { l1: 3.162, l2: 3.539, l3: 2.363, l4: 3.185, l5: 2.691 };
+const CAP = [
+  ['l1', 'A year of work, woven into one page.', 'एक साल का काम, एक पन्ने में बुना हुआ।'],
+  ['l2', 'Time runs down. Disciplines run across.', 'समय नीचे की ओर चलता है। विषय आड़े चलते हैं।'],
+  ['l3', 'Every stage leaves a stitch.', 'हर stage एक टाँका छोड़ता है।'],
+  ['l4', 'But gold is not given. It is proven.', 'पर सोना दिया नहीं जाता। वह साबित होता है।'],
+  ['l5', 'And the back of the cloth stays yours.', 'और कपड़े का पिछला हिस्सा आपका ही रहता है।'],
+];
+const PG = { ultra: ['#16246e', '#22379a', '#3a52b8'], verm: ['#8e1f12', '#c8321f', '#f0b8a4'], verd: ['#24584b', '#3f8f7a', '#bfe2d4'], rose: ['#9a4a58', '#d97a8a', '#f6d2d8'], azure: ['#3b6fae', '#6f9fd6', '#d8e6f6'], lilac: ['#5d5873', '#8f8aa6', '#e2dff0'], ochre: ['#7a5a2a', '#b88a48', '#ecd2a4'], ink: '#2a1a10', white: '#fbf3e2', vellum: '#efe2c4' };
+// ---------------------------------------------------------------- static textures: ultramarine grains, vellum
+const tex = (w, h, fn) => { const c = document.createElement('canvas'); c.width = w; c.height = h; fn(c.getContext('2d'), w, h); return c; };
+const ULTRA = tex(512, 512, (c, w, h) => { c.fillStyle = PG.ultra[1]; c.fillRect(0, 0, w, h); for (let i = 0; i < 26000; i++) { const v = hash(i * 1.3); c.fillStyle = v < .4 ? PG.ultra[0] : v < .8 ? '#2a40a8' : '#4660c4'; const s = 1 + hash(i * 3.1) * 2.4; c.fillRect(hash(i * 5.7) * w, hash(i * 9.1) * h, s, s); } });
+const VELL = tex(512, 512, (c, w, h) => { c.fillStyle = PG.vellum; c.fillRect(0, 0, w, h); for (let i = 0; i < 9000; i++) { c.fillStyle = `rgba(120,90,50,${.03 + .05 * hash(i)})`; c.fillRect(hash(i * 2.2) * w, hash(i * 4.4) * h, 1 + 3 * hash(i * 6.6), 1); } });
+let PU = null, PV = null;
+// ---------------------------------------------------------------- page layout (world units; page 1600 × 1000, centred)
+const PW = 1600, PH = 1000;
+const SCENES = [{ x: -470, y: -230, kind: 'bench' }, { x: -110, y: -230, kind: 'cross' }, { x: -470, y: 190, kind: 'teach' }, { x: -110, y: 190, kind: 'field' }];
+const GRID = { x: 330, y: -370, w: 360, h: 690, cols: 6, rows: 12 };   // the builder's map: 12 months down, 6 disciplines across
+// the builder's year: [row(month), col(discipline), stage 1..4]; two works were held (stage 4)
+const MARKS = []; { const R = SK.mulberry(5); for (let r = 0; r < 12; r++) for (let c = 0; c < 6; c++) { const v = R(); if (v < .42) MARKS.push([r, c, v < .16 ? 1 : v < .3 ? 2 : 3]); } }
+MARKS.push([3, 2, 4], [9, 4, 4]);
+const HELD_TAB = [{ x: -405, y: -170, w: 84, h: 64 }, { x: -40, y: 250, w: 84, h: 64 }];   // the gold tablets beside the two held works
+// ---------------------------------------------------------------- camera
+const CK = [[0, -363, -138, 9.0], [1.2, -363, -138, 8.2], [5, -300, -60, 1.05], [5.6, -470, -230, 1.7], [8.4, -470, -230, 1.75], [9.4, -110, -230, 1.7], [12.0, -110, -230, 1.75], [13.0, -470, 190, 1.7], [15.6, -470, 190, 1.75], [16.6, -110, 190, 1.7], [19.6, -110, 190, 1.75],
+  [21.4, 510, -25, 1.25], [27.4, 510, -25, 1.32], [29.6, 0, 0, 1.0], [36, 0, 0, 1.0], [50, 0, 0, 1.03], [52.4, 150, -330, 3.6], [55.6, 150, -330, 3.6], [56.0, 150, -330, 3.6], [57.2, 0, 0, 1.05], [60, 0, 0, 1.08]];
+function cam(t) { let i = 0; while (i < CK.length - 2 && t > CK[i + 1][0]) i++; const a = CK[i], b = CK[i + 1], u = eio(seg(t, a[0], b[0]) || 0);
+  const base = { x: lerp(a[1], b[1], u), y: lerp(a[2], b[2], u), s: Math.exp(lerp(Math.log(a[3]), Math.log(b[3]), u)) };
+  const w = eio(seg(t, 36.2, 37.6)) * (1 - eio(seg(t, 48.6, 50.2))); if (w <= 0) return base;
+  const lp = lampAt(t), lx = clamp(lp[0], -520, 520), ly = clamp(lp[1] * .75, -170, 170);
+  return { x: lerp(base.x, lx, w), y: lerp(base.y, ly, w), s: Math.exp(lerp(Math.log(base.s), Math.log(1.75), w)) }; }
+let C = null;
+// ---------------------------------------------------------------- the painting recipe: fill, inner rim shade, firm ink outline, white-lead edge
+function paint(path, body, rim, hi, lw = 3.2) {
+  g.fillStyle = body; path(); g.fill();
+  g.save(); path(); g.clip(); g.strokeStyle = rim; g.lineWidth = lw * 3.2 / C.s * C.s; path(); g.lineWidth = 7; g.stroke(); g.restore();
+  g.strokeStyle = PG.ink; g.lineWidth = Math.max(2.5 / C.s, lw); path(); g.stroke();
+  if (hi) { g.save(); g.translate(-1.6, -1.6); g.strokeStyle = hi; g.globalAlpha = .7; g.lineWidth = 1.4; path(); g.stroke(); g.restore(); }
+}
+const P = (pts) => () => { g.beginPath(); pts.forEach((p, i) => i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1])); g.closePath(); };
+const Circ = (x, y, r) => () => { g.beginPath(); g.arc(x, y, r, 0, 7); };
+function dots(x, y, n, r, col = PG.white) { g.fillStyle = col; for (let i = 0; i < n; i++) { const a = i / n * Math.PI * 2; g.beginPath(); g.arc(x + Math.cos(a) * r, y + Math.sin(a) * r, 1.6, 0, 7); g.fill(); } }
+function figure(x, y, s, robe, pose = 0, face = 1) {   // a painted figure: robe, head, hair, arm
+  const R = PG[robe];
+  paint(P([[x - 14 * s, y], [x - 9 * s, y - 52 * s], [x + 9 * s, y - 52 * s], [x + 16 * s, y]]), R[1], R[0], R[2]);
+  paint(Circ(x + pose * 4 * s, y - 62 * s, 10 * s), PG.rose[2], PG.rose[0], null, 2.4);
+  paint(P([[x - 10 * s + pose * 4 * s, y - 64 * s], [x - 8 * s + pose * 4 * s, y - 74 * s], [x + 9 * s + pose * 4 * s, y - 73 * s], [x + 10 * s + pose * 4 * s, y - 64 * s]]), PG.ochre[0], '#4a3218', null, 2.2);
+  g.strokeStyle = PG.ink; g.lineWidth = 3; g.beginPath(); g.moveTo(x + 4 * s, y - 44 * s); g.lineTo(x + (18 + pose * 10) * s, y - (30 + pose * 16) * s); g.stroke();
+  for (let i = 0; i < 5; i++) { g.fillStyle = PG.white; g.beginPath(); g.arc(x - 12 * s + i * 6 * s, y - 2 * s, 1.5, 0, 7); g.fill(); }   // pearls on the hem
+}
+function spires(x, y, n, col) { for (let i = 0; i < n; i++) { const xx = x + i * 26, h = 50 + 40 * hash(i * 3 + x); paint(P([[xx - 16, y], [xx - 8, y - h * .6], [xx - 2, y - h * .62], [xx + 4, y - h], [xx + 12, y - h * .7], [xx + 16, y]]), PG[col][1], PG[col][0], PG[col][2], 2.6); } }
+function cloud(x, y, w) { const k = 5; paint(() => { g.beginPath(); g.moveTo(x, y); for (let i = 0; i < k; i++) g.arc(x + (i + .5) * w / k, y, w / k / 2, Math.PI, 0); g.closePath(); }, PG.white, '#c8c0b0', null, 2.4); }
+function scene(sc, t) {
+  const { x, y, kind } = sc; g.save(); g.translate(x, y + 60); g.scale(1.32, 1.32); g.translate(-x, -y - 60);
+  // each scene sits on a verdigris ground with stepped rocks behind
+  spires(x - 150, y + 40, 4, 'lilac'); spires(x + 70, y + 40, 3, 'rose');
+  paint(P([[x - 170, y + 110], [x - 170, y + 40], [x - 60, y + 30], [x + 60, y + 42], [x + 170, y + 34], [x + 170, y + 110]]), PG.verd[1], PG.verd[0], PG.verd[2]);
+  if (kind === 'bench') {
+    paint(P([[x - 70, y + 52], [x - 70, y + 36], [x + 30, y + 36], [x + 30, y + 52]]), PG.ochre[1], PG.ochre[0], PG.ochre[2]);
+    paint(P([[x - 48, y + 36], [x - 44, y + 4], [x - 22, y + 4], [x - 18, y + 36]]), PG.azure[1], PG.azure[0], PG.azure[2]);   // the filter rig
+    figure(x + 52, y + 70, 1.0, 'verm', -.6);
+  } else if (kind === 'cross') {
+    paint(P([[x - 170, y + 80], [x - 170, y + 62], [x + 170, y + 66], [x + 170, y + 84]]), PG.azure[1], PG.azure[0], PG.azure[2]);   // the river
+    paint(() => { g.beginPath(); g.moveTo(x - 90, y + 70); g.quadraticCurveTo(x, y + 10, x + 90, y + 70); g.lineTo(x + 90, y + 78); g.quadraticCurveTo(x, y + 22, x - 90, y + 78); g.closePath(); }, PG.ochre[1], PG.ochre[0], PG.ochre[2]);
+    figure(x - 8, y + 42, .95, 'verm', .2); figure(x + 74, y + 66, .9, 'lilac', -.5);   // the reviewer
+  } else if (kind === 'teach') {
+    paint(P([[x - 100, y + 30], [x - 100, y - 30], [x - 40, y - 30], [x - 40, y + 30]]), PG.ink, '#000', null, 2.4);   // a board
+    g.strokeStyle = PG.white; g.lineWidth = 2; g.beginPath(); g.moveTo(x - 90, y - 10); g.lineTo(x - 52, y - 16); g.moveTo(x - 90, y + 4); g.lineTo(x - 60, y + 2); g.stroke();
+    figure(x - 10, y + 70, 1.0, 'verm', .8); figure(x + 50, y + 74, .7, 'azure', -.3);   // a younger learner
+  } else {
+    paint(P([[x + 10, y + 40], [x + 10, y - 10], [x + 60, y - 10], [x + 60, y + 40]]), PG.azure[1], PG.azure[0], PG.azure[2]);   // a water tank at a field site
+    paint(P([[x + 60, y + 10], [x + 110, y + 10], [x + 110, y + 18], [x + 60, y + 18]]), PG.lilac[1], PG.lilac[0], null, 2.2);
+    figure(x - 40, y + 70, 1.0, 'verm', .5);
+  }
+  g.restore();
+}
+// ---------------------------------------------------------------- gold leaf: squares, seams, bole, punched dots; light only on gold
+let LAMP = null;
+const LKEYS = [[36.4, -760, -150], [39.7, -363, -138], [41.4, -200, 60], [43.5, 2, 282], [46.4, 480, -169], [48.4, 600, 176], [49.6, 760, 220]];
+function lampAt(t) { let i = 0; while (i < LKEYS.length - 2 && t > LKEYS[i + 1][0]) i++; const a = LKEYS[i], b = LKEYS[i + 1], u = eio(seg(t, a[0], b[0])); return [lerp(a[1], b[1], u), lerp(a[2], b[2], u)]; }
+function gold(x, y, w, h, key, laid = 1) {
+  if (laid <= 0) return; const sq = 16;
+  g.save(); g.globalAlpha = laid; g.fillStyle = 'rgba(0,0,0,.35)'; g.fillRect(x + 3, y + 4, w, h);   // raised gesso: a small cast shadow
+  for (let j = 0; j * sq < h; j++) for (let i = 0; i * sq < w; i++) {
+    const sx = x + i * sq, sy = y + j * sq, sw = Math.min(sq, w - i * sq), sh = Math.min(sq, h - j * sq), id = key * 1000 + j * 50 + i;
+    let k = 0; if (LAMP) { const d = Math.hypot(sx + sw / 2 - LAMP.x, sy + sh / 2 - LAMP.y); const tilt = .55 + .45 * hash(id * 1.7); k = LAMP.a * Math.exp(-(d * d) / (2 * 120 * 120)) * tilt; }
+    const base = .32 + .14 * hash(id), lv = clamp(base + k * .82, 0, .82 + .14 * hash(id * 3));
+    const r = lerp(70, 250, lv), gg = lerp(48, 214, lv), b = lerp(16, 130, lv * lv);
+    g.fillStyle = `rgb(${r | 0},${gg | 0},${b | 0})`; g.fillRect(sx, sy, sw, sh);
+    g.fillStyle = 'rgba(40,20,5,.55)'; g.fillRect(sx, sy, sw, .8); g.fillRect(sx, sy, .8, sh);                 // seam
+    g.fillStyle = `rgba(255,236,170,${.25 + .5 * lv})`; g.fillRect(sx + .8, sy + .8, sw - 1, .6);                // overlap ridge
+    if (hash(id * 9.1) > .86) { g.fillStyle = '#8a2a18'; g.fillRect(sx + sw * hash(id * 2), sy + sh * hash(id * 4), 2, 1.4); }   // red bole
+    if (k > .62 && hash(id * 5.5) > .55) { const st = (k - .62) * 2.6; g.strokeStyle = `rgba(255,248,215,${clamp(st)})`; g.lineWidth = 1.2; const cx = sx + sw / 2, cy = sy + sh / 2, L2 = 6 + 10 * st;
+      g.beginPath(); g.moveTo(cx - L2, cy); g.lineTo(cx + L2, cy); g.moveTo(cx, cy - L2); g.lineTo(cx, cy + L2); g.stroke(); }
+  }
+  // punched dots along the edge, inner rim, ink outline
+  g.fillStyle = 'rgba(50,28,8,.75)'; for (let i = 6; i < w - 4; i += 7) { g.beginPath(); g.arc(x + i, y + 6, 1.2, 0, 7); g.arc(x + i, y + h - 6, 1.2, 0, 7); g.fill(); }
+  g.strokeStyle = PG.ink; g.lineWidth = 2.6; g.strokeRect(x, y, w, h); g.restore();
+}
+// ---------------------------------------------------------------- frame, sky, quatrefoil, woven map
+function quatrefoil(cx, cy, r, fill) { return () => { g.beginPath(); for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2; g.arc(cx + Math.cos(a) * r * .5, cy + Math.sin(a) * r * .5, r * .55, a - Math.PI / 2 - .2, a + Math.PI / 2 + .2); } g.closePath(); }; }
+function face(cx, cy, r) {
+  paint(Circ(cx, cy, r * .55), PG.rose[2], PG.rose[0], null, 2.4);
+  paint(P([[cx - r * .55, cy - r * .1], [cx - r * .5, cy - r * .5], [cx, cy - r * .62], [cx + r * .5, cy - r * .5], [cx + r * .55, cy - r * .1], [cx + r * .4, cy - r * .3], [cx - r * .4, cy - r * .3]]), PG.ochre[0], '#3a2410', null, 2.2);
+  g.fillStyle = PG.ink; g.beginPath(); g.arc(cx - r * .2, cy, 2.6, 0, 7); g.arc(cx + r * .2, cy, 2.6, 0, 7); g.fill();
+  g.strokeStyle = PG.ink; g.lineWidth = 2; g.beginPath(); g.arc(cx, cy + r * .18, r * .16, .2, Math.PI - .2); g.stroke();
+}
+function woven(t) {
+  const { x, y, w, h, cols, rows } = GRID, cw = w / cols, rh = h / rows;
+  paint(P([[x - 16, y - 16], [x + w + 16, y - 16], [x + w + 16, y + h + 16], [x - 16, y + h + 16]]), '#1b2a7a', '#101a52', null, 3);
+  // warp (time, vertical) and weft (disciplines, horizontal) threads grow along the frame
+  const kw = seg(t, 20.4, 23.4), kf = seg(t, 21.6, 24.6);
+  g.lineWidth = 3;
+  for (let i = 0; i < rows + 1; i++) { const u = clamp(kw * 1.4 - i * .03); if (u <= 0) continue; g.strokeStyle = i % 3 ? '#c9b48a' : PG.white; g.beginPath(); g.moveTo(x, y + i * rh); g.lineTo(x + w * eo(u), y + i * rh); g.stroke(); }
+  for (let j = 0; j < cols + 1; j++) { const u = clamp(kf * 1.4 - j * .05); if (u <= 0) continue; g.strokeStyle = ['#c8321f', '#3f8f7a', '#d97a8a', '#6f9fd6', '#8f8aa6', '#b88a48', '#fbf3e2'][j]; g.beginPath(); g.moveTo(x + j * cw, y); g.lineTo(x + j * cw, y + h * eo(u)); g.stroke(); }
+  // stitches by stage: claimed a dot, admitted a dash, submitted a cross; held = a gold square
+  for (const [r, c, st] of MARKS) {
+    const tt = 24.6 + (r * 6 + c) / 72 * 3.8; if (t < tt) continue; const cx = x + (c + .5) * cw, cy = y + (r + .5) * rh;
+    g.strokeStyle = PG.white; g.fillStyle = PG.white; g.lineWidth = 2.6;
+    if (st === 1) { g.beginPath(); g.arc(cx, cy, 3, 0, 7); g.fill(); }
+    else if (st === 2) { g.beginPath(); g.moveTo(cx - 10, cy); g.lineTo(cx + 10, cy); g.stroke(); }
+    else if (st === 3) { g.beginPath(); g.moveTo(cx - 8, cy - 8); g.lineTo(cx + 8, cy + 8); g.moveTo(cx + 8, cy - 8); g.lineTo(cx - 8, cy + 8); g.stroke(); }
+    else gold(cx - cw * .38, cy - rh * .38, cw * .76, rh * .76, 7 + r, 1);
+  }
+  // inscriptions, painted in the border
+  g.fillStyle = PG.white; g.font = F(700, 18); g.textAlign = 'center'; g.letterSpacing = '3px';
+  g.fillText('DISCIPLINES', x + w / 2, y - 26); g.save(); g.translate(x - 30, y + h / 2); g.rotate(-Math.PI / 2); g.fillText('MONTHS', 0, 0); g.restore(); g.letterSpacing = '0px';
+}
+function page(t) {
+  // ultramarine ground with white-lead stars (gold is kept for held work only)
+  PU.setTransform(new DOMMatrix().scale(1 / C.s)); g.fillStyle = PU; g.fillRect(-PW / 2, -PH / 2, PW, PH);
+  for (let i = 0; i < 70; i++) { const sx = -PW / 2 + 60 + hash(i * 2.3) * (PW - 120), sy = -PH / 2 + 40 + hash(i * 5.9) * (PH - 80); dots(sx, sy, 4, 3); }
+  // vermilion frame with pearls; the border band
+  g.strokeStyle = PG.verm[1]; g.lineWidth = 26; g.strokeRect(-PW / 2 + 13, -PH / 2 + 13, PW - 26, PH - 26);
+  g.strokeStyle = PG.ink; g.lineWidth = 3; g.strokeRect(-PW / 2, -PH / 2, PW, PH); g.strokeRect(-PW / 2 + 26, -PH / 2 + 26, PW - 52, PH - 52);
+  g.fillStyle = PG.white; for (let i = 0; i < 120; i++) { const u = i / 120 * 2 * (PW + PH), px = u < PW ? -PW / 2 + u : u < PW + PH ? PW / 2 : u < 2 * PW + PH ? PW / 2 - (u - PW - PH) : -PW / 2, py = u < PW ? -PH / 2 : u < PW + PH ? -PH / 2 + (u - PW) : u < 2 * PW + PH ? PH / 2 : PH / 2 - (u - 2 * PW - PH); g.beginPath(); g.arc(px + Math.sign(-px) * 13 * (Math.abs(px) > PW / 2 - 1 ? 1 : 0), py + Math.sign(-py) * 13 * (Math.abs(py) > PH / 2 - 1 ? 1 : 0), 2.4, 0, 7); g.fill(); }
+  cloud(-520, -420, 150); cloud(-60, -430, 120); cloud(140, 380, 110);
+  for (const sc of SCENES) scene(sc, t);
+  // the winding path that links the four moments (continuous narration)
+  g.strokeStyle = PG.ochre[2]; g.lineWidth = 5; g.setLineDash([10, 9]); g.beginPath(); g.moveTo(-420, -150); g.bezierCurveTo(-300, -120, -200, -120, -130, -150); g.bezierCurveTo(-60, 0, -500, 20, -470, 200); g.bezierCurveTo(-400, 300, -200, 300, -130, 250); g.stroke(); g.setLineDash([]);
+  // the quatrefoil medallion with the builder's face, top centre
+  paint(quatrefoil(150, -330, 120), PG.verm[1], PG.verm[0], PG.verm[2], 3.4); paint(quatrefoil(150, -330, 98), PG.azure[1], PG.azure[0], null, 2.6); face(150, -326, 62);
+  woven(t);
+  // the gold tablets beside the two held works: laid from the start, unlit until the lamp passes
+  HELD_TAB.forEach((b, i) => gold(b.x, b.y, b.w, b.h, i + 1, 1));
+}
+function backSide(t) {   // the plain back of the cloth: vellum, the threads seen from behind, no pictures
+  PV.setTransform(new DOMMatrix().scale(1 / C.s)); g.fillStyle = PV; g.fillRect(-PW / 2, -PH / 2, PW, PH);
+  g.strokeStyle = 'rgba(120,90,60,.35)'; g.lineWidth = 3; const { x, y, w, h, cols, rows } = GRID, mx = -x - w;
+  for (let i = 0; i <= rows; i++) { g.beginPath(); g.moveTo(mx, y + i * h / rows); g.lineTo(mx + w, y + i * h / rows); g.stroke(); }
+  for (let j = 0; j <= cols; j++) { g.beginPath(); g.moveTo(mx + j * w / cols, y); g.lineTo(mx + j * w / cols, y + h); g.stroke(); }
+  g.strokeStyle = PG.ink; g.lineWidth = 3; g.strokeRect(-PW / 2, -PH / 2, PW, PH);
+  g.fillStyle = 'rgba(42,26,16,.55)'; g.font = F(600, 30); g.textAlign = 'center'; g.fillText('the private side', 0, -PH / 2 + 80);
+}
+function frame(t) {
+  SK.reset(); C = cam(t); if (!PU) { PU = g.createPattern(ULTRA, 'repeat'); PV = g.createPattern(VELL, 'repeat'); }
+  g.setTransform(1, 0, 0, 1, 0, 0); g.globalAlpha = 1; g.fillStyle = '#0c1440'; g.fillRect(0, 0, W, H);
+  // the lamp carried across (36–50): a light inside the picture
+  LAMP = null; if (t > 35.6 && t < 50.4) { const lp = lampAt(t); LAMP = { x: lp[0], y: lp[1] - 10, a: seg(t, 35.6, 36.4) * (1 - seg(t, 49.6, 50.4)) }; }
+  if (t < 5) LAMP = { x: lerp(-470, -320, seg(t, 0, 5)), y: lerp(-190, -130, seg(t, 0, 5)), a: .55 };
+  // page turn 53–56: horizontal scale through zero, the back appears
+  const turn = seg(t, 53.0, 55.4), sx = Math.cos(turn * Math.PI), showBack = turn > .5;
+  const ax = showBack ? Math.abs(sx) : sx; g.setTransform(C.s * ax, 0, 0, C.s, W / 2 - C.x * C.s * ax, H / 2 - C.y * C.s);
+  if (!showBack) page(t); else backSide(t);
+  // night: pigments sink toward deep blue (30–36 and under the lamp pass); gold is laid dark
+  const night = .55 * seg(t, 29.6, 31.0) * (1 - seg(t, 50.0, 51.4));
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  if (night > 0 && !showBack) { g.fillStyle = `rgba(8,14,60,${night})`; g.globalCompositeOperation = 'multiply'; g.fillRect(0, 0, W, H); g.globalCompositeOperation = 'source-over';
+    // the gold redrawn above the night, so only gold rises when the lamp passes
+    g.setTransform(C.s * sx, 0, 0, C.s, W / 2 - C.x * C.s * sx, H / 2 - C.y * C.s);
+    HELD_TAB.forEach((b, i) => gold(b.x, b.y, b.w, b.h, i + 1, 1));
+    for (const [r, c, st] of MARKS) if (st === 4) { const cw = GRID.w / GRID.cols, rh = GRID.h / GRID.rows; gold(GRID.x + (c + .5) * cw - cw * .38, GRID.y + (r + .5) * rh - rh * .38, cw * .76, rh * .76, 7 + r, 1); }
+    // the lamp itself: a small painted flame
+    if (LAMP) { g.fillStyle = PG.ochre[1]; g.strokeStyle = PG.ink; g.lineWidth = 2.5; g.beginPath(); g.ellipse(LAMP.x, LAMP.y + 18, 18, 8, 0, 0, 7); g.fill(); g.stroke();
+      g.fillStyle = '#ffd27a'; g.beginPath(); g.moveTo(LAMP.x, LAMP.y - 16); g.quadraticCurveTo(LAMP.x + 9, LAMP.y + 2, LAMP.x, LAMP.y + 10); g.quadraticCurveTo(LAMP.x - 9, LAMP.y + 2, LAMP.x, LAMP.y - 16); g.fill(); g.stroke(); }
+    g.setTransform(1, 0, 0, 1, 0, 0);
+  }
+  // end card on the back: the mark in iron-gall ink, the inscription
+  if (showBack) { const k = seg(t, 56.2, 57.6); if (k > 0) { g.setTransform(1, 0, 0, 1, 0, 0); SK.mark(g, 560, 530, 1.25, k, PG.ink, 1.2); }
+    SK.endText(g, 56.6, t, 800, 470, { fg: PG.ink, sub: '#6b5440', accent: PG.verm[1] }); }
+  SK.series(g, '05', 'The Threaded Map', { fg: PG.white, accent: '#f0c060', plate: 'rgba(12,20,64,.75)' });
+  SK.subs(g, t, CAP, VO, VOD, { box: 'rgba(12,18,58,.86)', en: '#fbf3e2', hi: '#d6cdb6' });
+}
+window.render = t => frame(t);
+window.TEXTS = t => { frame(t); return SK.texts(); };
+const EV = [{ t: 20.4, type: 'weave', d: 4.2 }, { t: 30.0, type: 'night' }, { t: 36.4, type: 'lamp', d: 13 }, { t: 53.0, type: 'turn' }, { t: 56.2, type: 'end' }];
+EV.push({ t: 39.7, type: 'flash', i: 0 }, { t: 43.5, type: 'flash', i: 1 });
+window.EV = EV;
+Promise.all(['600 20px Inter', '700 20px SG', '500 20px Deva'].map(f => document.fonts.load(f, f.includes('Deva') ? 'हर' : 'A'))).then(() => { frame(0); window.READY = true; });
+</script></body></html>

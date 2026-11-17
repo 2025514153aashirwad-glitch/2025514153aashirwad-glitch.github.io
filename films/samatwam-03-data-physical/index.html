@@ -1,0 +1,198 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Samatwam 03 — What Is Given Back</title>
+<style>@font-face{font-family:Inter;src:url(fonts/Inter.ttf) format('truetype');font-weight:100 900}
+@font-face{font-family:SG;src:url(fonts/SpaceGrotesk.ttf) format('truetype');font-weight:300 700}
+@font-face{font-family:Deva;src:url(fonts/NotoSansDevanagari.ttf) format('truetype');font-weight:100 900}
+html,body{margin:0;background:#C4BEB4;overflow:hidden}canvas{display:block}</style></head>
+<body><canvas id="c" width="1920" height="1080"></canvas>
+<script src="common.js"></script>
+<script>
+const { clamp, lerp, seg, eio, eo, ei, back, hash, F } = SK;
+const W = 1920, H = 1080, BEAT = 60 / 72, S16 = BEAT / 4;
+window.DUR = 60.0;
+const cv = document.getElementById('c'), g = cv.getContext('2d');
+const VO = { l1: 1.0, l2: 8.2, l3: 27.4, l5: 47.4, l6: 56.6 }, VOD = { l1: 4.526, l2: 2.74, l3: 4.45, l5: 3.86, l6: 2.511 };
+const CAP = [
+  ['l1', 'Here is what one held work earns. One plate is one percent.', 'एक Held काम जो कमाता है, वह यह है। एक प्लेट, एक प्रतिशत।'],
+  ['l2', 'Seventy go to the people who built it.', 'सत्तर उन लोगों को जाते हैं जिन्होंने इसे बनाया।'],
+  ['l3', 'Fifteen go to an open commons, for anyone to build on.', 'पंद्रह एक खुले कॉमन्स को, ताकि कोई भी इस पर आगे बना सके।'],
+  ['l5', 'Nothing is paid for a claim. Only for what is proven.', 'किसी दावे के लिए कुछ नहीं मिलता। सिर्फ़ उसके लिए जो साबित हो।'],
+  ['l6', 'Build it. Prove it. Give it back.', 'बनाओ। साबित करो। लौटाओ।'],
+];
+// ---------------------------------------------------------------- the data: 100 plates = what one held work earns
+const PT = .0135, PR = .11, RING = .62;
+const ang = f => f * Math.PI * 2;
+const at = f => [RING * Math.sin(ang(f)), -RING * Math.cos(ang(f))];
+const STACKS = [
+  { n: 70, f: .35, mat: 'brass', t: [] },          // to the builders
+  { n: 15, f: .775, mat: 'acrylic', t: [] },       // to an open commons
+  { n: 15, f: .925, mat: 'stone', t: [] },         // the remaining 15%: destination not confirmed — unlabelled
+];
+STACKS.forEach(s => { [s.x, s.z] = at(s.f); });
+// landing times, on the 72 BPM grid
+STACKS[0].t.push(1.25);                                        // the first plate, alone
+for (let i = 1; i < 70; i++) STACKS[0].t.push(4.58 + (i - 1) * S16 * (i < 10 ? 2 : 1) + (i >= 10 ? 9 * S16 : 0));
+for (let i = 0; i < 15; i++) STACKS[1].t.push(28.33 + i * BEAT / 2);
+for (let i = 0; i < 15; i++) STACKS[2].t.push(38.33 + i * BEAT / 2);
+const PUCK = 56.0;
+const count = (s, t) => s.t.filter(x => x <= t).length;
+
+// ---------------------------------------------------------------- camera (orbit around a target, pinhole)
+let C = null;
+function setCam(T, az, el, dist) {
+  const ca = Math.cos(el), P = [T[0] + dist * Math.sin(az) * ca, T[1] + dist * Math.sin(el), T[2] + dist * Math.cos(az) * ca];
+  let fw = [T[0] - P[0], T[1] - P[1], T[2] - P[2]]; const nl = Math.hypot(...fw); fw = fw.map(v => v / nl);
+  let rt = [fw[2], 0, -fw[0]]; const rl = Math.hypot(...rt); rt = rt.map(v => -v / rl);
+  const up = [rt[1] * fw[2] - rt[2] * fw[1], rt[2] * fw[0] - rt[0] * fw[2], rt[0] * fw[1] - rt[1] * fw[0]];
+  C = { P, fw, rt, up, f: 1650, hx: [rt[0], 0, rt[2]].map(v => v / Math.hypot(rt[0], rt[2])), hz: [fw[0], 0, fw[2]].map(v => v / Math.hypot(fw[0], fw[2])) };
+}
+function proj(p) { const v = [p[0] - C.P[0], p[1] - C.P[1], p[2] - C.P[2]]; const z = v[0] * C.fw[0] + v[1] * C.fw[1] + v[2] * C.fw[2];
+  return [W / 2 + C.f * (v[0] * C.rt[0] + v[1] * C.rt[1] + v[2] * C.rt[2]) / z, H / 2 - C.f * (v[0] * C.up[0] + v[1] * C.up[1] + v[2] * C.up[2]) / z, z]; }
+function ell(x, y, z, r) { // horizontal circle → screen ellipse
+  const L = proj([x - r * C.hx[0], y, z - r * C.hx[2]]), R = proj([x + r * C.hx[0], y, z + r * C.hx[2]]), N = proj([x - r * C.hz[0], y, z - r * C.hz[2]]), Fr = proj([x + r * C.hz[0], y, z + r * C.hz[2]]);
+  return { cx: (L[0] + R[0]) / 2, cy: (N[1] + Fr[1]) / 2, rx: Math.abs(R[0] - L[0]) / 2, ry: Math.abs(N[1] - Fr[1]) / 2, d: proj([x, y, z])[2] };
+}
+const lz = (a, b, u) => Math.exp(lerp(Math.log(a), Math.log(b), u));
+const K = (T, az, el, d) => ({ T, az: az * Math.PI / 180, el: el * Math.PI / 180, d });
+function mixK(a, b, u, arc = 0) { const s = Math.sin(Math.PI * u) * arc; return { T: a.T.map((v, i) => lerp(v, b.T[i], u) + (i === 1 ? .15 * s : 0)), az: lerp(a.az, b.az, u), el: lerp(a.el, b.el, u) + .45 * s, d: lz(a.d, b.d, u) * (1 + .9 * s) }; }
+const stackTop = (s, t) => count(s, t) * PT;
+function camAt(t) {
+  const b = STACKS[0], cm = STACKS[1], th = STACKS[2];
+  const k0 = K([b.x, .03, b.z], -24, 19, .85);
+  if (t < 4) return mixK(k0, K([b.x, .04, b.z], -22, 12, .82), eio(seg(t, 0, 4)));
+  const follow = (s, az0, az1, el, d0, d1, a, bb) => { const u = seg(t, a, bb), h = stackTop(s, t); return K([s.x, Math.max(.04, h * .62), s.z], lerp(az0, az1, u), el + 6 * u, lerp(d0, d1, eio(u)) + h * .9); };
+  if (t < 20) return mixK(K([b.x, .04, b.z], -22, 10, .82), follow(b, -22, -6, 10, .82, 1.0, 4, 20), eio(seg(t, 4, 6)));
+  const hold = follow(b, -22, -6, 10, .82, 1.0, 4, 20);
+  if (t < 26) { const h2 = { ...hold, az: hold.az + .03 * seg(t, 20, 26) }; return h2; }
+  const fc = follow(cm, 12, 22, 12, .7, .85, 27.5, 38);
+  if (t < 38) return mixK(hold, fc, eio(seg(t, 26, 27.6)), 1);
+  const ft = follow(th, -16, -6, 13, .7, .85, 39.5, 46);
+  if (t < 46) return mixK(fc, ft, eio(seg(t, 38, 39.6)), 1);
+  const dial = K([0, .18, .05], 18, 52, 3.1);
+  if (t < 55.6) { const u = seg(t, 46, 52.4); const c = mixK(ft, dial, eio(u), 1.2); c.el = lerp(ft.el, dial.el, eo(u * 1.6)); return c; }
+  const endk = K([.15, 0, -.13], 220, 82, 1.1);
+  return mixK(dial, endk, eio(seg(t, 55.6, 57.0)));
+}
+
+// ---------------------------------------------------------------- materials
+const MAT = {
+  brass: { side: ['#6d5428', '#e6c88f', '#a6834a', '#4f3b1a'], top: ['#f0d6a0', '#b8955a'], edge: 'rgba(255,240,205,.7)' },
+  ruler: { side: ['#3e2c14', '#9a7a48', '#6b5228', '#2a1d0c'], top: ['#a88a58', '#6e5430'], edge: 'rgba(255,230,190,.5)' },
+  acrylic: { side: ['rgba(60,130,135,.82)', 'rgba(190,235,236,.85)', 'rgba(110,180,184,.82)', 'rgba(40,100,104,.85)'], top: ['rgba(205,240,240,.9)', 'rgba(120,190,194,.88)'], edge: 'rgba(240,255,255,.8)' },
+  stone: { side: ['#7d7a75', '#d8d4cd', '#a7a39c', '#625f5a'], top: ['#e2ded8', '#b3afa8'], edge: 'rgba(255,255,255,.5)' },
+};
+function cyl(x, y0, z, r, h, m, vary = 0) {
+  const b = ell(x, y0, z, r), tp = ell(x, y0 + h, z, r); if (b.d <= .05) return;
+  const sg = g.createLinearGradient(b.cx - b.rx, 0, b.cx + b.rx, 0); const sd = m.side;
+  sg.addColorStop(0, sd[0]); sg.addColorStop(.28, sd[1]); sg.addColorStop(.62, sd[2]); sg.addColorStop(1, sd[3]);
+  g.fillStyle = sg; g.beginPath(); g.ellipse(b.cx, b.cy, b.rx, b.ry, 0, 0, Math.PI); g.lineTo(tp.cx - tp.rx, tp.cy); g.ellipse(tp.cx, tp.cy, tp.rx, tp.ry, 0, Math.PI, 0, true); g.closePath(); g.fill();
+  const tg = g.createLinearGradient(tp.cx - tp.rx, tp.cy - tp.ry, tp.cx + tp.rx, tp.cy + tp.ry); tg.addColorStop(0, m.top[0]); tg.addColorStop(1, m.top[1]);
+  g.fillStyle = tg; g.beginPath(); g.ellipse(tp.cx, tp.cy, tp.rx, tp.ry, 0, 0, 7); g.fill();
+  if (vary) { g.fillStyle = vary > 0 ? `rgba(255,255,255,${vary})` : `rgba(0,0,0,${-vary})`; g.fill(); }
+  g.strokeStyle = m.edge; g.lineWidth = Math.max(.6, tp.rx / 160); g.beginPath(); g.ellipse(tp.cx, tp.cy, tp.rx, tp.ry, 0, Math.PI * 1.05, Math.PI * 1.95); g.stroke();
+  // hairline gap below the plate
+  g.strokeStyle = 'rgba(0,0,0,.28)'; g.lineWidth = Math.max(.5, b.rx / 260); g.beginPath(); g.ellipse(b.cx, b.cy, b.rx, b.ry, 0, 0, Math.PI); g.stroke();
+}
+// ---------------------------------------------------------------- the set: sweep, turned-wood base with an inlaid tick ring
+function sweep() { const gr = g.createLinearGradient(0, 0, 0, H); gr.addColorStop(0, '#d4cec5'); gr.addColorStop(.55, '#c4beb4'); gr.addColorStop(1, '#a9a399'); g.fillStyle = gr; g.fillRect(0, 0, W, H);
+  const rg = g.createRadialGradient(W * .35, H * .3, 50, W * .35, H * .3, W * .9); rg.addColorStop(0, 'rgba(255,245,230,.18)'); rg.addColorStop(1, 'rgba(0,0,0,.14)'); g.fillStyle = rg; g.fillRect(0, 0, W, H); }
+function ring(r, y, n = 160) { const out = []; for (let i = 0; i <= n; i++) { const a = i / n * Math.PI * 2; out.push(proj([r * Math.sin(a), y, -r * Math.cos(a)])); } return out; }
+function polyPath(pts) { if (pts.some(p => p[2] < .05)) { g.beginPath(); return; } g.beginPath(); pts.forEach((p, i) => i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1])); g.closePath(); }
+function base(t) {
+  const R = 1, Hb = .07, tp = ring(R, 0), bt = ring(R, -Hb);
+  // contact shadow and the turned edge (true perspective: a polygon, not a fitted ellipse)
+  g.save(); g.filter = 'blur(24px)'; g.fillStyle = 'rgba(40,30,20,.35)'; polyPath(ring(R * 1.03, -Hb)); g.fill(); g.restore();
+  g.fillStyle = '#3a2516'; polyPath(bt); g.fill();
+  for (let i = 0; i < bt.length - 1; i++) { const a = bt[i], b2 = bt[i + 1], c2 = tp[i + 1], d2 = tp[i]; if (b2[1] < c2[1] && a[1] < d2[1]) continue;
+    const sh = .5 + .5 * Math.sin(i / bt.length * Math.PI * 2 + 1); g.fillStyle = `rgb(${50 + 60 * sh},${32 + 38 * sh},${20 + 24 * sh})`; g.beginPath(); g.moveTo(a[0], a[1]); g.lineTo(b2[0], b2[1]); g.lineTo(c2[0], c2[1]); g.lineTo(d2[0], d2[1]); g.closePath(); g.fill(); }
+  const e0 = ell(0, 0, 0, R), tg = g.createRadialGradient(e0.cx - e0.rx * .3, e0.cy - e0.ry * .4, 10, e0.cx, e0.cy, e0.rx * 1.1); tg.addColorStop(0, '#8a5d3d'); tg.addColorStop(1, '#4e3221');
+  g.fillStyle = tg; polyPath(tp); g.fill();
+  g.lineWidth = Math.max(.6, e0.rx / 700);
+  for (let i = 1; i < 40; i++) { g.strokeStyle = `rgba(${hash(i) > .5 ? '30,18,10' : '160,110,70'},${.08 + .08 * hash(i * 3)})`; polyPath(ring(i / 40, 0, 96)); g.stroke(); }
+  const tp0 = e0;
+  // inlaid tick ring: 100 ticks, every tenth longer
+  for (let i = 0; i < 100; i++) { const a = ang(i / 100), r0 = i % 10 ? .9 : .87, r1 = .93; const p0 = proj([r0 * Math.sin(a), 0, -r0 * Math.cos(a)]), p1 = proj([r1 * Math.sin(a), 0, -r1 * Math.cos(a)]); if (p0[2] < .05 || p1[2] < .05) continue;
+    g.strokeStyle = 'rgba(232,210,170,.75)'; g.lineWidth = Math.max(.7, tp0.rx / (i % 10 ? 900 : 520)); g.beginPath(); g.moveTo(p0[0], p0[1]); g.lineTo(p1[0], p1[1]); g.stroke(); }
+  // the dial: inlaid arcs in each stack's material, revealed in the pull-back
+  const k = eio(seg(t, 47.5, 51.5));
+  if (k > 0) [[0, .7, '#d9b77a'], [.7, .85, '#8fcfd2'], [.85, 1, '#cfcbc4']].forEach(([a0, a1, col], j) => {
+    const u = clamp(k * 3 - j); if (u <= 0) return; g.strokeStyle = col; g.lineWidth = Math.max(2, tp0.rx / 70); g.beginPath();
+    for (let s = 0; s <= 80; s++) { const a = ang(lerp(a0, lerp(a0, a1, u), s / 80)); const p = proj([.955 * Math.sin(a), 0, -.955 * Math.cos(a)]); s ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1]); } g.stroke(); });
+}
+// long soft shadows from the key light (front-left, low): fall back and right on the base
+function shadows(t) {
+  g.save(); g.filter = 'blur(10px)'; g.fillStyle = 'rgba(25,15,8,.22)';
+  for (const s of STACKS) { const h = stackTop(s, t); if (h <= 0) continue; const L = h * 1.6 + .02;
+    for (let k = 0; k <= 12; k++) { const u = k / 12, e = ell(s.x + .55 * L * u, .001, s.z - .8 * L * u, PR * (1 - .25 * u)); g.globalAlpha = .55; g.beginPath(); g.ellipse(e.cx, e.cy, e.rx, e.ry, 0, 0, 7); g.fill(); } }
+  g.restore();
+}
+function stacks(t) {
+  const order = STACKS.map((s, i) => ({ s, i, d: proj([s.x, 0, s.z])[2] })).sort((a, b) => b.d - a.d);
+  for (const { s, i } of order) {
+    for (let k = 0; k < s.n; k++) {
+      const tl = s.t[k]; if (t < tl - .22) break;
+      const fall = 1 - ei(seg(t, tl - .22, tl)), bounce = t > tl ? .004 * Math.exp(-(t - tl) * 30) * Math.sin((t - tl) * 60) : 0;
+      const y = k * PT + fall * .26 + Math.abs(bounce), jx = (hash(i * 100 + k) - .5) * .008, jz = (hash(i * 100 + k + 50) - .5) * .008;
+      const m = s.mat === 'brass' && (k + 1) % 10 === 0 ? MAT.ruler : MAT[s.mat];
+      cyl(s.x + jx, y, s.z + jz, PR, PT - .0015, m, (hash(i * 7 + k * 3.1) - .5) * .14);
+    }
+  }
+}
+function puck(t) {
+  if (t < PUCK - .3) return; const fall = 1 - ei(seg(t, PUCK - .3, PUCK)), y = fall * .5, r = .2, h = .035;
+  cyl(0, y, 0, r, h, MAT.brass);
+  const e = ell(0, y + h, 0, r); const k = seg(t, PUCK + .2, PUCK + 1.6);
+  g.save(); g.translate(e.cx, e.cy); g.scale(1, e.ry / e.rx); g.globalAlpha = .9;
+  SK.mark(g, 0, -e.rx * .12, e.rx / 300 * 1.05, k, 'rgba(70,48,18,.92)', 1.1);
+  g.font = F(700, Math.max(8, e.rx * .085)); g.fillStyle = `rgba(70,48,18,${.9 * seg(t, PUCK + 1.2, PUCK + 1.8)})`; g.textAlign = 'center'; g.fillText('BUILD IT · PROVE IT · GIVE IT BACK', 0, e.rx * .72);
+  g.restore();
+}
+// ---------------------------------------------------------------- readings pinned to objects (screen type)
+function reading(s, t, big, line, line2, id, alpha, pass) {
+  if (alpha <= 0) return; const p = proj([s.x, stackTop(s, t) + .03, s.z]);
+  const x = p[0] + 110, y = Math.max(150, Math.min(760, p[1]));
+  g.save(); g.globalAlpha = alpha; g.textAlign = 'left'; g.textBaseline = 'alphabetic';
+  g.font = F(800, 96, 'SG'); { const mw = Math.max(g.measureText(big).width, line ? 300 : 0, line2 ? 300 : 0); g.fillStyle = 'rgba(240,236,228,.86)'; g.beginPath(); g.roundRect(x - 22, y - 96, mw + 50, 120 + (line ? 44 : 0) + (line2 ? 38 : 0), 10); g.fill(); }
+  g.fillStyle = '#1C1D20'; g.font = F(800, 96, 'SG'); g.fillText(big, x, y); const m = g.measureText(big).width;
+  SK.reg(id, big, x, y - 76, x + m, y + 8, pass);
+  g.strokeStyle = 'rgba(28,29,32,.45)'; g.lineWidth = 1.5; g.beginPath(); g.moveTo(p[0] + 20, p[1]); g.lineTo(x - 14, y - 34); g.stroke();
+  if (line) { g.font = F(600, 30); g.fillStyle = '#1C1D20'; g.fillText(line, x + 4, y + 46); SK.reg(id + 'L', line, x + 4, y + 22, x + 4 + g.measureText(line).width, y + 54); }
+  if (line2) { g.font = F(500, 24); g.fillStyle = '#D4521C'; g.fillText(line2, x + 4, y + 84); SK.reg(id + 'L2', line2, x + 4, y + 64, x + 4 + g.measureText(line2).width, y + 90); }
+  g.restore();
+}
+function readings(t) {
+  const [b, cm, th] = STACKS;
+  // the rule, stated once
+  { const a = seg(t, 1.5, 1.9) * (1 - seg(t, 6.6, 7.0)); if (a > 0) { const p = proj([b.x, PT + .02, b.z]); g.save(); g.globalAlpha = a; g.textAlign = 'left'; g.font = F(800, 64, 'SG'); g.fillStyle = '#1C1D20';
+    const x = p[0] + 120, y = p[1] - 30; g.fillStyle = 'rgba(240,236,228,.86)'; g.beginPath(); g.roundRect(x - 20, y - 70, 420, 130, 10); g.fill(); g.fillStyle = '#1C1D20'; g.fillText('1 plate = 1%', x, y); SK.reg('rule', '1 plate = 1%', x, y - 52, x + g.measureText('1 plate = 1%').width, y + 6); g.font = F(500, 26); g.fillStyle = '#5c5a56'; g.fillText('of what one held work earns', x + 2, y + 40); SK.reg('rule2', 'of what one held work earns', x, y + 18, x + 360, y + 46);
+    g.strokeStyle = 'rgba(28,29,32,.45)'; g.lineWidth = 1.5; g.beginPath(); g.moveTo(p[0] + 30, p[1]); g.lineTo(x - 14, y - 20); g.stroke(); g.restore(); } }
+  const nb = count(b, t), nc = count(cm, t), nt = count(th, t);
+  reading(b, t, nb + '%', nb >= 70 ? 'TO THE BUILDERS' : '', '', 'b' + (nb >= 70 ? 'F' : nb), seg(t, 7.2, 7.6) * (1 - seg(t, 26.4, 27.0)) * (t < 46 ? 1 : 0), nb < 70);
+  reading(cm, t, nc + '%', nc >= 15 ? 'TO AN OPEN COMMONS' : '', nc >= 15 ? 'open licence by default' : '', 'c' + (nc >= 15 ? 'F' : nc), seg(t, 28.4, 28.8) * (1 - seg(t, 37.6, 38.1)), nc < 15);
+  reading(th, t, nt + '%', '', '', 't' + (nt >= 15 ? 'F' : nt), seg(t, 38.4, 38.8) * (1 - seg(t, 45.4, 46.0)), nt < 15);
+  // the dial: three readings around the base, and the condition
+  const k = seg(t, 50.0, 50.6) * (1 - seg(t, 55.4, 55.8)); if (k > 0) {
+    g.save(); g.globalAlpha = k; g.textAlign = 'center';
+    [[b, '70%', 'Builders'], [cm, '15%', 'Open commons'], [th, '15%', '']].forEach(([s, v, l], j) => { const p0 = proj([s.x * 1.75, 0, s.z * 1.75]), p = [p0[0], Math.min(840, p0[1])]; g.font = F(800, 52, 'SG'); g.fillStyle = '#1C1D20'; g.fillText(v, p[0], p[1]); SK.reg('d' + j, v, p[0] - 50, p[1] - 42, p[0] + 50, p[1] + 4);
+      if (l) { g.font = F(600, 24); g.fillText(l, p[0], p[1] + 32); SK.reg('dl' + j, l, p[0] - 90, p[1] + 12, p[0] + 90, p[1] + 38); } });
+    g.font = F(700, 30); g.fillStyle = '#D4521C'; g.fillText('Only held works earn.', W / 2, 150); SK.reg('only', 'Only held works earn.', W / 2 - 170, 124, W / 2 + 170, 156);
+    g.restore(); }
+  // source line
+  g.save(); g.font = F(500, 18); g.fillStyle = 'rgba(28,29,32,.6)'; g.textAlign = 'left'; g.fillText('Source: Samatwam Org, share of value from a held work', 62, 900); g.restore();
+}
+// ---------------------------------------------------------------- frame
+window.render = t => {
+  SK.reset(); const k = camAt(t); setCam(k.T, k.az, k.el, k.d);
+  g.setTransform(1, 0, 0, 1, 0, 0); g.filter = 'none'; g.globalAlpha = 1; sweep(); base(t); shadows(t); stacks(t); puck(t);
+  // vignette
+  const vg = g.createRadialGradient(W / 2, H / 2, H * .45, W / 2, H / 2, H * 1.05); vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(30,20,10,.28)'); g.fillStyle = vg; g.fillRect(0, 0, W, H);
+  readings(t);
+  SK.endText(g, 56.8, t, 120, 470, { fg: '#F3EAD8', sub: '#dccbab', accent: '#E8743C' });
+  SK.series(g, '03', 'What Is Given Back', { fg: '#1C1D20', accent: '#D4521C', plate: 'rgba(240,236,228,.88)' });
+  SK.subs(g, t, CAP, VO, VOD, { box: 'rgba(240,236,228,.94)', en: '#1C1D20', hi: '#4f4a43' });
+};
+window.TEXTS = t => { window.render(t); return SK.texts(); };
+const EV = []; STACKS.forEach((s, i) => s.t.forEach((t, k) => EV.push({ t, type: 'plate', i, k })));
+EV.push({ t: PUCK, type: 'puck' }); window.EV = EV;
+Promise.all(['600 20px Inter', '800 20px SG', '500 20px Deva'].map(f => document.fonts.load(f, f.includes('Deva') ? 'हर' : 'A'))).then(() => { window.render(0); window.READY = true; });
+</script></body></html>

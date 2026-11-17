@@ -1,0 +1,190 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Samatwam 04 — Seven Levels of Sight</title>
+<style>@font-face{font-family:Inter;src:url(fonts/Inter.ttf) format('truetype');font-weight:100 900}
+@font-face{font-family:SG;src:url(fonts/SpaceGrotesk.ttf) format('truetype');font-weight:300 700}
+@font-face{font-family:Deva;src:url(fonts/NotoSansDevanagari.ttf) format('truetype');font-weight:100 900}
+html,body{margin:0;background:#0b0806;overflow:hidden}canvas{display:block}</style></head>
+<body><canvas id="c" width="1920" height="1080"></canvas>
+<script src="common.js"></script>
+<script>
+const { clamp, lerp, seg, eio, eo, ei, back, hash, F } = SK;
+const W = 1920, H = 1080, BEAT = 60 / 66;
+window.DUR = 60.0;
+const cv = document.getElementById('c'), g = cv.getContext('2d');
+const mk = () => { const c = document.createElement('canvas'); c.width = W; c.height = H; return c; };
+const VO = { l1: 1.6, l2: 9.6, l3: 34.4, l4: 42.0, l5: 52.0 }, VOD = { l1: 3.804, l2: 3.817, l3: 3.196, l4: 2.882, l5: 2.249 };
+const CAP = [
+  ['l1', 'Every work begins with one light: the person who made it.', 'हर काम एक रोशनी से शुरू होता है: उसे बनाने वाला इंसान।'],
+  ['l2', 'Each level of sight is a door only they can open.', 'देखने का हर स्तर एक दरवाज़ा है, जिसे सिर्फ़ वही खोल सकते हैं।'],
+  ['l3', 'Some doors stay closed. That is their right.', 'कुछ दरवाज़े बंद रहते हैं। यह उनका अधिकार है।'],
+  ['l4', 'What is shown, is shown by consent.', 'जो दिखाया जाता है, सहमति से दिखाया जाता है।'],
+  ['l5', 'Seven levels. One owner.', 'सात स्तर। एक मालिक।'],
+];
+// ---------------------------------------------------------------- the box: seven sheets, back (Sight 1) to front (Sight 7)
+const BW = .56, BH = .33, Z = k => -.14 + (k - 1) * .0225;            // metres; front sheet at z = 0.0
+const LADDER = ['#f7dcae', '#ecbf88', '#d39a66', '#ad7246', '#80502f', '#4c2d19', '#1d110a'];
+// when each window burns through (consent given), on the 66 BPM grid; Sight 6 is never opened
+const OPEN = [6.36, 10.0, 13.64, 19.09, 22.73, null, 49.09];
+const LAMP = [-.03, -.045];
+// ---------------------------------------------------------------- camera: z (distance), x, y; box framing ↔ full-bleed
+const CK = [[0, .58, 0, 0], [5, .56, 0, 0], [18, .43, -.01, .005], [27.0, .24, .07, -.01], [28.6, .2, -.14, .04], [33.6, .19, -.14, .04], [40, .5, 0, 0], [48, .47, 0, .005], [55.6, .45, 0, .005], [58, 1.25, -.2, .02], [60, 1.3, -.2, .02]];
+function cam(t) { let i = 0; while (i < CK.length - 2 && t > CK[i + 1][0]) i++; const a = CK[i], b = CK[i + 1], u = eio(seg(t, a[0], b[0]));
+  return { z: Math.exp(lerp(Math.log(a[1]), Math.log(b[1]), u)), x: lerp(a[2], b[2], u), y: lerp(a[3], b[3], u) }; }
+const FOC = 1196;
+let C = null;
+const S = z => FOC / (C.z - z);
+const P = (x, y, z) => { const s = S(z); return [W / 2 + (x - C.x) * s, H / 2 - (y - C.y) * s]; };
+// ---------------------------------------------------------------- shapes per sheet (in metres, y up); each returns solid paper paths
+function poly(c, z, pts) { c.beginPath(); pts.forEach((p, i) => { const q = P(p[0], p[1], z); i ? c.lineTo(q[0], q[1]) : c.moveTo(q[0], q[1]); }); c.closePath(); }
+function circ(c, z, x, y, r) { const q = P(x, y, z); c.moveTo(q[0] + r * S(z), q[1]); c.arc(q[0], q[1], r * S(z), 0, 7); }
+function arch(c, z, x, y, w, h) { const pts = [[x - w / 2, y], [x - w / 2, y + h - w / 2]]; for (let i = 0; i <= 16; i++) { const a = Math.PI - i / 16 * Math.PI; pts.push([x + Math.cos(a) * w / 2, y + h - w / 2 + Math.sin(a) * w / 2]); } pts.push([x + w / 2, y]); poly(c, z, pts); }
+function frameWithOpening(c, z, inset, archTop) {   // the sheet's border, cut with a big opening (even-odd)
+  const s = S(z), a = P(-BW / 2, BH / 2, z), b = P(BW / 2, -BH / 2, z);
+  c.beginPath(); c.rect(a[0], a[1], b[0] - a[0], b[1] - a[1]);
+  const pts = [[-BW / 2 + inset, -BH / 2 + inset * .6], [-BW / 2 + inset, BH / 2 - inset - archTop]];
+  for (let i = 0; i <= 24; i++) { const an = Math.PI - i / 24 * Math.PI; pts.push([Math.cos(an) * (BW / 2 - inset), BH / 2 - inset - archTop + Math.sin(an) * archTop]); }
+  pts.push([BW / 2 - inset, -BH / 2 + inset * .6]);
+  pts.forEach((p, i) => { const q = P(p[0], p[1], z); i ? c.lineTo(q[0], q[1]) : c.moveTo(q[0], q[1]); }); c.closePath();
+  c.fill('evenodd');
+}
+const person = (c, z, x, y, h, lean = 0, arm = 0) => {   // a jointed cut-out figure (head, body, legs, arm)
+  const r = h * .1; c.beginPath(); circ(c, z, x + lean * h * .25, y + h * .9, r); c.fill();
+  poly(c, z, [[x - h * .13, y + h * .45], [x + lean * h * .2 - h * .1, y + h * .78], [x + lean * h * .2 + h * .1, y + h * .78], [x + h * .13, y + h * .45]]); c.fill();
+  poly(c, z, [[x - h * .12, y + h * .47], [x - h * .14, y], [x - h * .05, y], [x, y + h * .3], [x + h * .05, y], [x + h * .14, y], [x + h * .12, y + h * .47]]); c.fill();
+  poly(c, z, [[x + lean * h * .15 + h * .06, y + h * .72], [x + lean * h * .15 + h * (.3 + arm * .1), y + h * (.55 + arm * .25)], [x + lean * h * .15 + h * (.31 + arm * .1), y + h * (.5 + arm * .25)], [x + lean * h * .15 + h * .05, y + h * .64]]); c.fill();
+};
+// consent windows per sheet: [x, y, w, h] arched, cut when consent is given
+const WIN = [[.02, .02, .05, .07], [-.15, -.01, .045, .07], [.13, -.085, .04, .06], [-.05, .02, .04, .07], [.16, -.03, .05, .05], [-.17, .03, .05, .08], [0, .095, .12, .05]];
+function scenery(c, k, z) {
+  const b = -BH / 2;
+  if (k === 1) {   // only the builder: a bench, the builder bent over it, a hanging lamp
+    poly(c, z, [[-.13, b + .07], [.05, b + .07], [.05, b + .08], [-.13, b + .08]]); c.fill();
+    poly(c, z, [[-.12, b], [-.115, b], [-.115, b + .07], [-.12, b + .07]]); c.fill(); poly(c, z, [[.04, b], [.045, b], [.045, b + .07], [.04, b + .07]]); c.fill();
+    person(c, z, .1, b, .12, -.9, -.6);
+    poly(c, z, [[-.06, b + .08], [-.03, b + .08], [-.035, b + .1], [-.055, b + .1]]); c.fill();   // the work on the bench
+  } else if (k === 2) {   // mentors
+    person(c, z, -.2, b, .13, .3, .4); person(c, z, .2, b, .12, -.2, 0);
+    poly(c, z, [[-BW / 2, b], [-BW / 2, b + .04], [-.06, b + .02], [.06, b + .025], [BW / 2, b + .05], [BW / 2, b]]); c.fill();
+  } else if (k === 3) {   // a school
+    poly(c, z, [[.04, b], [.04, b + .1], [.13, b + .16], [.22, b + .1], [.22, b]]); c.fill();
+    for (let i = 0; i < 3; i++) { c.beginPath(); circ(c, z, -.1 - i * .055, b + .07, .03); c.fill(); poly(c, z, [[-.102 - i * .055, b], [-.098 - i * .055, b], [-.098 - i * .055, b + .05], [-.102 - i * .055, b + .05]]); c.fill(); }
+    poly(c, z, [[-BW / 2, b], [-BW / 2, b + .03], [BW / 2, b + .015], [BW / 2, b]]); c.fill();
+  } else if (k === 4) {   // a city
+    const hs = [.12, .08, .16, .1, .2, .09, .14, .07, .11, .17, .1];
+    hs.forEach((hh, i) => { const x0 = -BW / 2 + i * .052; poly(c, z, [[x0, b], [x0, b + hh], [x0 + .045, b + hh], [x0 + .045, b]]); c.fill(); });
+  } else if (k === 5) {   // a river and a bridge: the wider field
+    poly(c, z, [[-BW / 2, b], [-BW / 2, b + .06], [-.12, b + .05], [-.1, b + .035], [.1, b + .035], [.12, b + .05], [BW / 2, b + .07], [BW / 2, b]]); c.fill();
+    c.beginPath(); const p0 = P(-.12, b + .05, z), p1 = P(.12, b + .05, z), pc = P(0, b + .14, z); c.moveTo(p0[0], p0[1]); c.quadraticCurveTo(pc[0], pc[1], p1[0], p1[1]); c.lineWidth = .012 * S(z); c.strokeStyle = c.fillStyle; c.stroke();
+  } else if (k === 6) {   // hills (the door that stays closed)
+    poly(c, z, [[-BW / 2, b], [-BW / 2, b + .17], [-.16, b + .1], [-.05, b + .04], [.06, b + .06], [.18, b + .12], [BW / 2, b + .09], [BW / 2, b]]); c.fill();
+  } else {   // the public: a crowd along the front edge, revealed when Sight 7 opens
+    c.save(); c.globalAlpha = seg(T_, 49.3, 50.8);
+    for (let i = 0; i < 15; i++) person(c, z, -.25 + i * .036, b, .065 + .02 * hash(i * 3), (hash(i) - .5) * .4, hash(i * 7) > .6 ? 1 : 0);
+    c.restore();
+  }
+}
+// ---------------------------------------------------------------- light: which sheets the light reaches
+function lit(k, t) {
+  const o = OPEN[k - 1]; if (o == null) return .12 * seg(t, 3, 5);
+  const base = .12 * seg(t, 3, 5); return Math.max(base, eo(seg(t, o, o + 1.2)));
+}
+// ---------------------------------------------------------------- render
+const L = Array.from({ length: 7 }, mk), BG = mk();
+let REG = [];
+let T_ = 0;
+function sheet(k, t) { T_ = t;
+  const c = L[k - 1].getContext('2d'), z = Z(k); c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, W, H);
+  const lv = lit(k, t), col = LADDER[k - 1];
+  c.fillStyle = col; frameWithOpening(c, z, .014 + (7 - k) * .017, .045 + (7 - k) * .009); scenery(c, k, z);
+  // the consent window: cut (burns open) or still scored
+  const [wx, wy, ww, wh] = WIN[k - 1], o = OPEN[k - 1];
+  const host = () => { c.save(); arch(c, z, wx, wy, ww * 1.6, wh * 1.35); c.fill(); c.restore(); };   // a patch of paper that holds the window
+  host();
+  const burn = o == null ? 0 : eo(seg(t, o, o + .9));
+  if (burn > 0) { c.save(); arch(c, z, wx, wy, ww, wh); c.clip(); const q = P(wx, wy + wh / 2, z); c.globalCompositeOperation = 'destination-out'; c.beginPath(); c.arc(q[0], q[1], burn * wh * S(z) * .8, 0, 7); c.fill(); c.restore();
+    if (burn < 1) { const q2 = P(wx, wy + wh / 2, z); c.save(); arch(c, z, wx, wy, ww * 1.05, wh * 1.05); c.clip(); c.strokeStyle = `rgba(255,170,60,${1 - burn})`; c.lineWidth = .004 * S(z); c.beginPath(); c.arc(q2[0], q2[1], burn * wh * S(z) * .8, 0, 7); c.stroke(); c.restore(); } }
+  else { c.save(); c.strokeStyle = 'rgba(0,0,0,.35)'; c.lineWidth = Math.max(1, .0012 * S(z)); c.setLineDash([.004 * S(z), .003 * S(z)]); arch(c, z, wx, wy, ww, wh); c.stroke(); c.restore(); }
+  // backlight through the paper: warm, cloudy, strongest near the lamp; front sheets barely transmit
+  const trans = lerp(.95, .06, (k - 1) / 6), q = P(LAMP[0], LAMP[1], z), R = .3 * S(z);
+  c.save(); c.globalCompositeOperation = 'source-atop';
+  const gr = c.createRadialGradient(q[0], q[1], 0, q[0], q[1], R * (1 + k * .25)); gr.addColorStop(0, `rgba(255,190,90,${.75 * trans * lv})`); gr.addColorStop(1, `rgba(255,150,60,${.12 * trans * lv})`);
+  c.fillStyle = gr; c.fillRect(0, 0, W, H);
+  c.fillStyle = `rgba(0,0,0,${(1 - lv) * .55})`; c.fillRect(0, 0, W, H);   // unconsented sheets sit dark
+  if (k === 7) { c.fillStyle = `rgba(255,165,80,${.42 * eo(seg(t, 49.1, 50.6))})`; c.fillRect(0, 0, W, H); }   // light floods the front sheet
+  // fibre grain
+  for (let i = 0; i < 60; i++) { c.fillStyle = `rgba(255,240,210,${.03 * hash(i * k)})`; const fx = hash(i * 3.3 + k) * W, fy = hash(i * 7.1 + k) * H; c.fillRect(fx, fy, 30 + 60 * hash(i), 1.2); }
+  c.restore();
+  // rim light on the top edges, shade under: shifted copies
+  return lv;
+}
+function frame(t) {
+  REG = []; SK.reset(); C = cam(t);
+  g.setTransform(1, 0, 0, 1, 0, 0); g.globalAlpha = 1; g.filter = 'none';
+  // the room
+  g.fillStyle = '#0b0806'; g.fillRect(0, 0, W, H);
+  const lampOn = t < 1.0 ? 0 : t < 1.06 ? 1 : t < 1.14 ? 0 : t < 1.2 ? .6 : t < 1.26 ? 0 : eo(seg(t, 1.26, 2.4));
+  // table and spill (when the box is in view)
+  const tb = P(0, -BH / 2 - .02, .02), sp = S(.02);
+  g.fillStyle = '#1a120c'; g.fillRect(0, tb[1], W, H - tb[1]);
+  const sg = g.createRadialGradient(tb[0], tb[1] + 40, 10, tb[0], tb[1] + 40, sp * .6); sg.addColorStop(0, `rgba(255,170,80,${.35 * lampOn})`); sg.addColorStop(1, 'rgba(255,170,80,0)'); g.fillStyle = sg; g.fillRect(0, tb[1], W, H - tb[1]);
+  // the back panel (sky) and the lamp
+  { const z = -.15, a = P(-BW / 2, BH / 2, z), b = P(BW / 2, -BH / 2, z), q = P(LAMP[0], LAMP[1], z);
+    const gr = g.createRadialGradient(q[0], q[1], 0, q[0], q[1], .42 * S(z)); gr.addColorStop(0, `rgba(255,236,190,${lampOn})`); gr.addColorStop(.25, `rgba(255,190,100,${.9 * lampOn})`); gr.addColorStop(.6, `rgba(230,150,80,${.75 * lampOn + .04})`); gr.addColorStop(1, `rgba(170,90,45,${.65 * lampOn + .04})`);
+    g.fillStyle = gr; g.fillRect(a[0], a[1], b[0] - a[0], b[1] - a[1]); }
+  // sheets, back to front, each casting a soft shadow on the ones behind (top spot light)
+  for (let k = 1; k <= 7; k++) {
+    if (C.z - Z(k) < .015) continue;   // the camera has passed this sheet
+    sheet(k, t);
+    g.save(); g.shadowColor = 'rgba(0,0,0,.55)'; g.shadowBlur = 22; g.shadowOffsetY = 10 + k; g.globalAlpha = 1;
+    if (C.z - Z(k) < .05) g.globalAlpha = clamp((C.z - Z(k) - .015) / .035);
+    g.drawImage(L[k - 1], 0, 0); g.restore();
+    // top rim: a warm hairline on upper edges
+    g.save(); g.globalCompositeOperation = 'lighter'; g.globalAlpha = .22 * lit(k, t) * (k < 7 ? 1 : .4); g.drawImage(L[k - 1], 0, -2); g.restore();
+  }
+  // bloom on the lamp
+  { const q = P(LAMP[0], LAMP[1], -.15); g.save(); g.globalCompositeOperation = 'lighter'; const gr = g.createRadialGradient(q[0], q[1], 0, q[0], q[1], 260); gr.addColorStop(0, `rgba(255,200,120,${.45 * lampOn})`); gr.addColorStop(1, 'rgba(255,200,120,0)'); g.fillStyle = gr; g.fillRect(q[0] - 260, q[1] - 260, 520, 520); g.restore(); }
+  // the box frame (wood) in box framing
+  { const z = .012, a = P(-BW / 2 - .02, BH / 2 + .02, z), b = P(BW / 2 + .02, -BH / 2 - .02, z), ia = P(-BW / 2, BH / 2, z), ib = P(BW / 2, -BH / 2, z);
+    g.fillStyle = '#2a1a10'; g.beginPath(); g.rect(a[0], a[1], b[0] - a[0], b[1] - a[1]); g.rect(ia[0], ia[1], ib[0] - ia[0], ib[1] - ia[1]); g.fill('evenodd');
+    g.strokeStyle = 'rgba(255,190,120,.12)'; g.lineWidth = 2; g.strokeRect(a[0], a[1], b[0] - a[0], b[1] - a[1]); }
+  // labels for opened sight levels (printed in screen space next to their window), in box framing only
+  labels(t);
+  strip(t);
+  // end: the mark cut into the frame, glowing; the end card
+  const ek = seg(t, 56.4, 57.6); if (ek > 0) { const q = P(0, BH / 2 + .065, .012); g.save(); g.globalCompositeOperation = 'lighter'; SK.mark(g, q[0], q[1] - 40, BH * S(.012) * .55 / 300, ek, `rgba(255,190,110,${.95})`, 1.2); g.restore(); }
+  SK.endText(g, 56.9, t, 150, 470, { fg: '#F6E2C0', sub: '#c9a983', accent: '#E8943C' });
+  const vg = g.createRadialGradient(W / 2, H / 2, H * .4, W / 2, H / 2, H); vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,.45)'); g.fillStyle = vg; g.fillRect(0, 0, W, H);
+  SK.series(g, '04', 'Seven Levels of Sight', { fg: '#F2DDBE', accent: '#E8943C', plate: 'rgba(20,12,8,.7)' });
+  SK.subs(g, t, CAP, VO, VOD, { box: 'rgba(20,13,8,.82)', en: '#F6E6CC', hi: '#d8bf9c' });
+}
+function labels(t) {
+  for (let k = 1; k <= 7; k++) {
+    const o = OPEN[k - 1]; const show = o == null ? (t > 28.6 && t < 33.8) : t > o + .5 && t < 55.4 && (C.z > .3 || (t > 18 && t < 28.6 && k >= 2 && k <= 5));
+    if (!show) continue; const [wx, wy, ww, wh] = WIN[k - 1], z = Z(k), q = P(wx + ww * .8, wy + wh * .9, z);
+    if (q[0] < 60 || q[0] > W - 260 || q[1] < 120 || q[1] > 880) continue;
+    const a = o == null ? seg(t, 28.6, 29.0) : seg(t, o + .5, o + .9);
+    g.save(); g.globalAlpha = a; g.font = F(700, 22); g.letterSpacing = '3px'; const s1 = 'SIGHT ' + k, s2 = o == null ? 'NOT OPENED' : 'OPEN';
+    const m = Math.max(g.measureText(s1).width, g.measureText(s2).width) + 30; g.fillStyle = 'rgba(20,12,8,.72)'; g.beginPath(); g.roundRect(q[0] + 10, q[1] - 30, m, 64, 6); g.fill();
+    g.fillStyle = '#F6E2C0'; g.fillText(s1, q[0] + 24, q[1] - 4); g.fillStyle = o == null ? '#a8a29a' : '#E8943C'; g.font = F(600, 18); g.fillText(s2, q[0] + 24, q[1] + 22); g.letterSpacing = '0px'; g.restore();
+    SK.reg('sight' + k + (o == null ? 'x' : ''), s1 + ' ' + s2, q[0] + 24, q[1] - 22, q[0] + 24 + m - 30, q[1] + 26, !(C.z > .3) && !(t > 28.6 && t < 33.8));
+  }
+}
+// paper that writes itself: a strip along the front sheet's lower edge
+function strip(t) {
+  const k = seg(t, 35.0, 36.2), out = 1 - seg(t, 55.4, 55.9); if (k <= 0 || out <= 0) return;
+  const z = .002, a = P(-.2, -BH / 2 + .03, z), b = P(.2, -BH / 2 + .03, z), hpx = .022 * S(z);
+  g.save(); g.globalAlpha = out; g.fillStyle = '#efe0c4'; g.shadowColor = 'rgba(0,0,0,.5)'; g.shadowBlur = 10; g.shadowOffsetY = 4;
+  g.fillRect(a[0], a[1] - hpx, (b[0] - a[0]) * eo(k), hpx * 1.6); g.shadowColor = 'transparent';
+  const msg = 'consent covers Sight 5', n = Math.floor(msg.length * seg(t, 35.8, 37.6));
+  g.font = F(600, Math.round(hpx * .78)); g.fillStyle = '#3a2416'; g.textAlign = 'center'; g.fillText(msg.slice(0, n), (a[0] + b[0]) / 2, a[1] + hpx * .1);
+  if (n > 0) { const m = g.measureText(msg).width; SK.reg('strip', msg, (a[0] + b[0]) / 2 - m / 2, a[1] - hpx * .6, (a[0] + b[0]) / 2 + m / 2, a[1] + hpx * .3); }
+  g.restore();
+  // the light stops exactly there: sheets 6 and 7 stay dark until the builder opens Sight 7
+}
+window.render = t => frame(t);
+window.TEXTS = t => { frame(t); return SK.texts(); };
+const EV = [{ t: 1.0, type: 'filament' }, { t: 1.26, type: 'lamp' }];
+OPEN.forEach((o, i) => { if (o != null) EV.push({ t: o - .7, type: 'score', k: i + 1 }, { t: o, type: 'open', k: i + 1 }); });
+EV.push({ t: 35.0, type: 'strip' }, { t: 56.4, type: 'end' }); window.EV = EV;
+Promise.all(['600 20px Inter', '700 20px SG', '500 20px Deva'].map(f => document.fonts.load(f, f.includes('Deva') ? 'हर' : 'A'))).then(() => { frame(0); window.READY = true; });
+</script></body></html>
