@@ -1,0 +1,8 @@
+Samatwam 01 · The Line of a Work
+
+Style engine: Lemo-Opuscar "Transit Map" (github.com/lemomo-ai/lemo-opuscar), engine files gl.js and film.js used as-is; network, story and furniture in net.js and timeline.js.
+Content: Samatwam Film Series brief (Samatwam Org). The Samatwam Prime mark is drawn in code from its parts (owned by Samatwam Org).
+Typefaces (SIL OFL 1.1): Inter (Rasmus Andersson); Noto Sans Devanagari (Google / Noto).
+Voice: Kokoro-82M text-to-speech (Apache 2.0), voice "bm_george", offline.
+Music and sound: synthesized in code (mix.py); foley from the library's procedural sfx.py. No samples or recordings.
+Tools: FFmpeg; headless Chromium (SwiftShader WebGL).
