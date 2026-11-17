@@ -23,7 +23,10 @@ sc.cycles.denoiser = 'OPENIMAGEDENOISE'; sc.cycles.use_adaptive_sampling = True;
 rw, rh = map(int, opt.get('--res', '1280x720').split('x')); sc.render.resolution_x, sc.render.resolution_y = rw, rh
 sc.view_settings.view_transform = 'AgX'; sc.view_settings.look = 'AgX - Medium High Contrast'
 sc.render.fps = FPS; sc.frame_start, sc.frame_end = 1, NF
-sc.render.image_settings.file_format = 'PNG'; sc.render.image_settings.color_mode = 'RGB'
+FMT = os.environ.get('SAMATVA_FORMAT', 'PNG')   # PNG here; JPEG (quality 95) to save space on Colab/Drive
+sc.render.image_settings.file_format = FMT; sc.render.image_settings.color_mode = 'RGB'
+if FMT == 'JPEG': sc.render.image_settings.quality = 95
+EXT = 'jpg' if FMT == 'JPEG' else 'png'
 DEV = os.environ.get('SAMATVA_DEVICE', 'CPU')   # CPU here; OPTIX or CUDA on a graphics card (e.g. Kaggle)
 if DEV != 'CPU':
     pr = bpy.context.preferences.addons['cycles'].preferences; pr.compute_device_type = DEV; pr.get_devices()
@@ -327,7 +330,7 @@ if PASS == 'thermal':
 a, b = map(int, opt.get('--frames', f'1-{NF}').split('-'))
 os.makedirs(OUTDIR, exist_ok=True)
 for f in range(a, b + 1):
-    fp = os.path.join(OUTDIR, f'{f:04d}.png')
+    fp = os.path.join(OUTDIR, f'{f:04d}.{EXT}')
     if os.path.exists(fp) and os.path.getsize(fp) > 0: continue
     import time; t0 = time.time(); sc.frame_set(f); sc.render.filepath = fp; bpy.ops.render.render(write_still=True); print('FRAMETIME', f, round(time.time() - t0, 1), flush=True)
 print('DONE', SHOT, PASS, a, b)
