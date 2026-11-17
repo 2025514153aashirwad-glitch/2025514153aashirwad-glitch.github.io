@@ -113,15 +113,25 @@ async function chapter(name, t) {
   const metal = await plate(name, 'metal', lt); if (metal) g.drawImage(metal, 0, 0, W, H);
   if (S.th && lt < DRAIN[1]) {
     const th = await plate(name, 'thermal', Math.min(lt, TH_LEN - 1 / 24));
-    if (th) {   // heat retreats toward its source: a soft, uneven edge closing in
-      const k = ease((lt - DRAIN[0]) / (DRAIN[1] - DRAIN[0])), R = lerp(1500, 0, k);
-      og.clearRect(0, 0, W, H); og.globalCompositeOperation = 'source-over'; og.drawImage(th, 0, 0, W, H);
-      og.globalCompositeOperation = 'destination-in';
-      const hx = W * .52, hy = H * .42, gr = og.createRadialGradient(hx, hy, R * .25, hx, hy, R + 1);
-      gr.addColorStop(0, 'rgba(0,0,0,1)'); gr.addColorStop(.7, 'rgba(0,0,0,.85)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
-      og.fillStyle = gr; og.fillRect(0, 0, W, H); g.drawImage(off, 0, 0);
+    if (th) {   // the metal cools: each pixel keeps its heat colour until its temperature falls below a dropping threshold
+      const k = ease((lt - DRAIN[0]) / (DRAIN[1] - DRAIN[0]));
+      og.globalCompositeOperation = 'source-over'; og.clearRect(0, 0, W, H); og.drawImage(th, 0, 0, W, H);
+      if (k > 0) {
+        const id = og.getImageData(0, 0, W, H), d = id.data, thr = lerp(-.05, 1.05, k), soft = .12;
+        for (let i = 0; i < d.length; i += 4) {
+          const heat = (d[i] * .55 + d[i + 1] * .35 + d[i + 2] * .1) / 255;   // ironbow brightness ≈ temperature
+          d[i + 3] = 255 * clamp((heat - thr) / soft + .5, 0, 1);
+        }
+        og.putImageData(id, 0, 0);
+      }
+      g.drawImage(off, 0, 0);
     }
   }
+  // soft scrims so type always reads, shown only while type is on screen
+  const kA = S.n ? fade(lt, .5, 6.2, .7) : 0;
+  const lA = Math.max(0, ...(S.lines || []).map(([, a0, a1]) => fade(t, a0, a1, .7)), name === 'loop' ? fade(t, 59.4, 68.8, .6) : 0, name === 'finale' ? fade(t, 72.4, 79.4, .8) : 0);
+  if (lA > 0) { const gr = g.createLinearGradient(0, H, 0, H - 420); gr.addColorStop(0, `rgba(0,0,0,${.62 * lA})`); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(0, H - 420, W, 420); }
+  if (kA > 0) { const gr = g.createRadialGradient(120, 110, 0, 120, 110, 520); gr.addColorStop(0, `rgba(0,0,0,${.5 * kA})`); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(0, 0, W, H); }
   // chapter kicker, top left
   if (S.n) { const a = fade(lt, .5, 6.2, .7); text(`${S.n}   ${S.name}`, 120, 120, '15px GeistMono', '#fff', a, 'left', 5); text(S.sub, 120, 152, '400 20px Geist', 'rgba(255,255,255,.66)', a); }
   // the principle, lower left
