@@ -1,0 +1,378 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Samatwam — Six Classes</title>
+<style>
+@font-face{font-family:Geist;src:url(fonts/Geist-Medium.woff2) format('woff2');font-weight:500}
+@font-face{font-family:Geist;src:url(fonts/Geist-Regular.woff2) format('woff2');font-weight:400}
+@font-face{font-family:GeistMono;src:url(fonts/GeistMono-Regular.woff2) format('woff2')}
+@font-face{font-family:Inter;src:url(fonts/Inter-400.woff2) format('woff2')}
+html,body{margin:0;background:#fff;overflow:hidden}canvas{display:block}
+</style></head>
+<body><canvas id="c" width="1920" height="1080"></canvas>
+<script>
+// ---------------------------------------------------------------- basics
+const W = 1920, H = 1080, cv = document.getElementById('c'), g = cv.getContext('2d');
+window.DUR = 76.0; window.EV = [];
+const INK = '#131313', MUTED = '#6B6B6B', HAIR = '#E4E4E1', GRID = '#F1F1EE', BLUE = '#2E6FD6', PASS = '#1F7A3A', FAIL = '#C8372D', PAPER = '#FFFFFF';
+const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
+const lerp = (a, b, k) => a + (b - a) * k;
+const seg = (t, a, b) => clamp((t - a) / (b - a));
+const eo = x => 1 - Math.pow(1 - clamp(x), 3);
+const eio = x => { x = clamp(x); return x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2; };
+const eo5 = x => 1 - Math.pow(1 - clamp(x), 5);
+let T = 0;
+function font(f, s, w = 500) { return f === 'mono' ? `${s}px GeistMono` : f === 'inter' ? `${s}px Inter` : `${w} ${s}px Geist`; }
+function txt(s, x, y, f, size, col = INK, a = 1, align = 'left', ls = 0, w = 500) {
+  if (a <= 0 || !s) return; g.save(); g.globalAlpha *= a; g.font = font(f, size, w); g.fillStyle = col; g.textAlign = align; g.textBaseline = 'alphabetic';
+  g.letterSpacing = ls + 'px'; g.fillText(s, x, y); g.restore();
+}
+// a line of type rising out of a mask: the house move for every reveal
+function rise(s, x, y, f, size, t0, col = INK, align = 'left', ls = 0, w = 500, out = 1e9) {
+  const k = eo5(seg(T, t0, t0 + .7)), ko = eio(seg(T, out, out + .45)); if (k <= 0 || ko >= 1) return;
+  g.save(); g.beginPath(); g.rect(0, y - size * 1.05, W, size * 1.35); g.clip();
+  txt(s, x, y + (1 - k) * size * 1.1 - ko * size * 1.1, f, size, col, 1, align, ls, w); g.restore();
+}
+function wrap(s, maxW, f, size, w = 500) {
+  g.save(); g.font = font(f, size, w); const out = []; let line = '';
+  for (const word of s.split(' ')) { const tryL = line ? line + ' ' + word : word; if (g.measureText(tryL).width > maxW && line) { out.push(line); line = word; } else line = tryL; }
+  if (line) out.push(line); g.restore(); return out;
+}
+function line(x0, y0, x1, y1, col = INK, lw = 1, a = 1) { if (a <= 0) return; g.save(); g.globalAlpha *= a; g.strokeStyle = col; g.lineWidth = lw; g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke(); g.restore(); }
+function poly(pts, k = 1) {   // draw a polyline up to fraction k of its length
+  if (k <= 0 || pts.length < 2) return; let L = 0; const d = [0];
+  for (let i = 1; i < pts.length; i++) { L += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); d.push(L); }
+  const lim = L * clamp(k); g.beginPath(); g.moveTo(pts[0][0], pts[0][1]);
+  for (let i = 1; i < pts.length; i++) { if (d[i] <= lim) g.lineTo(pts[i][0], pts[i][1]); else { const f = (lim - d[i - 1]) / (d[i] - d[i - 1]); g.lineTo(lerp(pts[i - 1][0], pts[i][0], f), lerp(pts[i - 1][1], pts[i][1], f)); break; } }
+}
+function tick(x, y, s, col = PASS, k = 1) { g.save(); g.strokeStyle = col; g.lineWidth = 2.4; g.lineCap = 'round'; poly([[x - s * .5, y], [x - s * .12, y + s * .38], [x + s * .55, y - s * .42]], k); g.stroke(); g.restore(); }
+function cross(x, y, s, col = FAIL, k = 1) { g.save(); g.strokeStyle = col; g.lineWidth = 2.4; g.lineCap = 'round'; poly([[x - s * .4, y - s * .4], [x + s * .4, y + s * .4]], k * 2); g.stroke(); poly([[x + s * .4, y - s * .4], [x - s * .4, y + s * .4]], k * 2 - 1); g.stroke(); g.restore(); }
+const R = (s => () => (s = (s * 16807) % 2147483647) / 2147483647)(7);
+
+// ---------------------------------------------------------------- the six classes (Samatvam Company Brochure 2026, section 07–13)
+const CL = [
+  { name: 'Physical AI', g: 'hex', phil: 'Intelligence is proven in motion.', leave: 'A machine task trained, trialled, ready for hardware.', chain: ['Scene', 'Task', 'Train', 'Trial', 'Record', 'Forge'], fig: 'Pick, place and sorting' },
+  { name: 'Simulation', g: 'ring', phil: 'Test the world before you change it.', leave: 'A validated simulation of a real problem.', chain: ['Problem', 'Model', 'Physics', 'Solve', 'Validate', 'Database'], fig: 'Thermal systems and cooling' },
+  { name: 'Open Engineering', g: 'square', phil: 'Learn by making something of your own.', leave: 'A working, validated engineering tool or design.', chain: ['Problem', 'Principles', 'Build', 'Validate', 'Document', 'Certify'], fig: 'Structural Dissection' },
+  { name: 'Open Research', g: 'disc', phil: 'A claim is only as good as its proof.', leave: 'A reproducible result, certified and licensable.', chain: ['Question', 'Method', 'Data', 'Analysis', 'Reproduce', 'Certify'], fig: 'Biomimicry — natural fibres' },
+  { name: 'Data Interfaces', g: 'lined', phil: 'Data is useful only when someone can use it.', leave: 'A working interface on real data.', chain: ['Source', 'Connect', 'Process', 'Interface', 'User test', 'Certify'], fig: 'Civic and public data dashboards' },
+  { name: 'Hackathon', g: 'tri', phil: 'Pressure reveals structure.', leave: 'A prototype for a real problem, built as a team.', chain: ['Problem', 'Team', 'Plan', 'Build', 'Demo', 'Certify'], fig: 'Partner hackathon' },
+];
+const T0 = 6.0, SEG = 9.5, SPINE = T0 + 6 * SEG;   // classes run 6.0–63.0
+
+// ---------------------------------------------------------------- glyphs: one outline resampled to N points, so each morphs into the next
+const N = 96;
+function resample(pts) {
+  const P = [...pts, pts[0]]; let L = 0; const d = [0];
+  for (let i = 1; i < P.length; i++) { L += Math.hypot(P[i][0] - P[i - 1][0], P[i][1] - P[i - 1][1]); d.push(L); }
+  const out = []; let j = 1;
+  for (let k = 0; k < N; k++) { const s = L * k / N; while (d[j] < s) j++; const f = (s - d[j - 1]) / (d[j] - d[j - 1] || 1); out.push([lerp(P[j - 1][0], P[j][0], f), lerp(P[j - 1][1], P[j][1], f)]); }
+  return out;
+}
+const ngon = (n, rot = -Math.PI / 2, r = 1) => [...Array(n)].map((_, i) => [Math.cos(rot + i * 2 * Math.PI / n) * r, Math.sin(rot + i * 2 * Math.PI / n) * r]);
+const GLY = {
+  hex: { p: resample(ngon(6)), fill: 0 },
+  ring: { p: resample(ngon(64)), fill: 0, dot: 1 },
+  square: { p: resample([[0, -1], [1, -1], [1, 1], [-1, 1], [-1, -1]].map(([x, y]) => [x * .86, y * .86])), fill: 1 },
+  disc: { p: resample(ngon(64)), fill: 1 },
+  lined: { p: resample([[0, -1], [1, -1], [1, 1], [-1, 1], [-1, -1]].map(([x, y]) => [x * .86, y * .86])), fill: 0, bars: 1 },
+  tri: { p: resample([[0, -1], [.98, .78], [-.98, .78]]), fill: 1 },
+};
+function glyph(a, b, k, cx, cy, s, col = INK, alpha = 1) {
+  const A = GLY[a], B = GLY[b || a], e = eio(k), fill = lerp(A.fill, B.fill, e), dot = lerp(A.dot || 0, B.dot || 0, e), bars = lerp(A.bars || 0, B.bars || 0, e);
+  g.save(); g.globalAlpha *= alpha; g.translate(cx, cy); g.beginPath();
+  for (let i = 0; i < N; i++) { const p = [lerp(A.p[i][0], B.p[i][0], e) * s, lerp(A.p[i][1], B.p[i][1], e) * s]; i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1]); }
+  g.closePath(); g.lineWidth = Math.max(2, s * .075); g.strokeStyle = col; g.lineJoin = 'miter'; g.stroke();
+  if (fill > 0) { g.globalAlpha *= fill; g.fillStyle = col; g.fill(); g.globalAlpha /= fill || 1; }
+  if (dot > 0) { g.globalAlpha *= dot; g.fillStyle = col; g.beginPath(); g.arc(0, 0, s * .32, 0, 7); g.fill(); g.globalAlpha /= dot || 1; }
+  if (bars > 0) { g.globalAlpha *= bars; g.lineWidth = Math.max(2, s * .075); for (const y of [-.35, 0, .35]) { g.beginPath(); g.moveTo(-s * .55, y * s); g.lineTo(s * .55, y * s); g.stroke(); } }
+  g.restore();
+}
+
+// ---------------------------------------------------------------- page furniture
+function paper() {
+  g.fillStyle = PAPER; g.fillRect(0, 0, W, H);
+  g.strokeStyle = GRID; g.lineWidth = 1; g.beginPath();
+  for (let x = 120; x <= 1800; x += 140) { g.moveTo(x + .5, 0); g.lineTo(x + .5, H); }
+  for (let y = 96; y <= H; y += 70) { g.moveTo(0, y + .5); g.lineTo(W, y + .5); }
+  g.stroke();
+}
+function header(idx, a) {
+  txt('SAMATWAM', 120, 70, 'mono', 14, INK, a, 'left', 4);
+  txt('SIX CLASSES · ONE DISCIPLINE OF PROOF', 330, 70, 'mono', 14, MUTED, a, 'left', 3);
+  if (idx >= 0) txt(`${String(idx + 1).padStart(2, '0')} / 06`, 1800, 70, 'mono', 14, INK, a, 'right', 3);
+  line(120, 96, 1800, 96, INK, 1, a);
+}
+// technical figure frame: hairline box, corner ticks, caption
+function frame(x, y, w, h, cap, k) {
+  const L = [[x, y], [x + w, y], [x + w, y + h], [x, y + h], [x, y]];
+  g.save(); g.strokeStyle = HAIR; g.lineWidth = 1; poly(L, eo(k)); g.stroke(); g.strokeStyle = INK; g.lineWidth = 2;
+  for (const [cx, cy, sx, sy] of [[x, y, 1, 1], [x + w, y, -1, 1], [x + w, y + h, -1, -1], [x, y + h, 1, -1]]) { g.globalAlpha = eo(k); g.beginPath(); g.moveTo(cx + 18 * sx, cy); g.lineTo(cx, cy); g.lineTo(cx, cy + 18 * sy); g.stroke(); }
+  g.restore(); txt(cap, x, y - 16, 'mono', 12, MUTED, eo(k), 'left', 2.5);
+}
+// toolchain: six stages along the foot of the page; the active stage is filled blue
+function chain(c, u, a) {
+  const st = c.chain, x0 = 120, x1 = 1800, y = 960, step = (x1 - x0) / (st.length - 1);
+  const act = clamp((u - .9) / 7.3) * (st.length - .001);
+  txt('TOOLCHAIN', 120, 922, 'mono', 12, MUTED, a, 'left', 2.5);
+  g.save(); g.globalAlpha = a;
+  line(x0, y, x1, y, HAIR, 2);
+  g.strokeStyle = INK; g.lineWidth = 2; g.beginPath(); g.moveTo(x0, y); g.lineTo(x0 + (x1 - x0) * clamp(act / (st.length - 1)), y); g.stroke();
+  st.forEach((s, i) => {
+    const x = x0 + i * step, on = act >= i, cur = Math.floor(act) === i;
+    g.beginPath(); g.arc(x, y, cur ? 9 : 6, 0, 7); g.fillStyle = cur ? BLUE : on ? INK : PAPER; g.fill(); g.strokeStyle = cur ? BLUE : on ? INK : '#BDBDB8'; g.lineWidth = 2; g.stroke();
+    txt(s, x, y + 44, 'geist', 20, cur ? BLUE : on ? INK : '#9A9A95', 1, i === 0 ? 'left' : i === st.length - 1 ? 'right' : 'center', -.2, cur ? 500 : 400);
+    txt(String(i + 1).padStart(2, '0'), x, y - 22, 'mono', 11, cur ? BLUE : '#9A9A95', 1, i === 0 ? 'left' : i === st.length - 1 ? 'right' : 'center', 1);
+  });
+  g.restore();
+}
+
+// ---------------------------------------------------------------- the six figures (x, y, w, h = panel; u = seconds into the class)
+const FX = 860, FY = 200, FW = 940, FH = 600;
+function figPhysical(u) {
+  // a two-link arm repeating a pick-and-place task; each completed trial adds a mark; success rate counts up
+  const bx = FX + 250, by = FY + 452, L1 = 250, L2 = 245, period = 1.9, n = Math.floor(Math.max(0, u - 1.2) / period), ph = (Math.max(0, u - 1.2) % period) / period;
+  const A = [FX + 560, FY + 420], B = [FX + 740, FY + 300], home = [FX + 430, FY + 230];
+  const path = ph < .3 ? [home, A, eio(ph / .3)] : ph < .55 ? [A, B, eio((ph - .3) / .25)] : [B, home, eio((ph - .55) / .45)];
+  const p = u < 1.2 ? home : [lerp(path[0][0], path[1][0], path[2]), lerp(path[0][1], path[1][1], path[2]) - Math.sin(Math.PI * path[2]) * (ph >= .3 && ph < .55 ? 90 : 30)];
+  const dx = p[0] - bx, dy = p[1] - by, d = Math.min(Math.hypot(dx, dy), L1 + L2 - 1), c2 = (d * d - L1 * L1 - L2 * L2) / (2 * L1 * L2);
+  const ik = q2 => { const q1 = Math.atan2(dy, dx) - Math.atan2(L2 * Math.sin(q2), L1 + L2 * Math.cos(q2)); return [bx + L1 * Math.cos(q1), by + L1 * Math.sin(q1)]; };
+  const ea = ik(Math.acos(clamp(c2, -1, 1))), eb = ik(-Math.acos(clamp(c2, -1, 1))), e = ea[1] < eb[1] ? ea : eb, k = eo(seg(u, .2, 1.0));   // always elbow-up
+  g.save(); g.globalAlpha = k;
+  line(FX + 60, by + 28, FX + FW - 60, by + 28, INK, 2);   // the bench
+  for (let x = FX + 70; x < FX + FW - 60; x += 22) line(x, by + 28, x - 14, by + 44, HAIR, 1.5);
+  // target pads
+  for (const [x, y, lbl] of [[A[0], A[1] + 18, 'PICK'], [B[0], B[1] + 18, 'PLACE']]) { g.strokeStyle = INK; g.setLineDash([5, 5]); g.lineWidth = 1.5; g.strokeRect(x - 34, y - 6, 68, 12); g.setLineDash([]); txt(lbl, x, y + 34, 'mono', 11, MUTED, 1, 'center', 2); }
+  if (B[1] + 12 < by + 28) { line(B[0] - 70, B[1] + 24, B[0] + 70, B[1] + 24, INK, 2); line(B[0], B[1] + 24, B[0], by + 28, HAIR, 2); }
+  // block: rests at pick, travels with the gripper, lands at place
+  const carry = u > 1.2 && ph >= .3 && ph < .55, atB = u > 1.2 && ph >= .55;
+  const blk = carry ? [p[0], p[1] + 30] : atB ? [B[0], B[1] - 6] : [A[0], A[1] - 6];
+  g.fillStyle = BLUE; g.fillRect(blk[0] - 18, blk[1] - 18, 36, 36);
+  // arm
+  g.lineCap = 'round'; g.strokeStyle = INK; g.lineWidth = 16; g.beginPath(); g.moveTo(bx, by); g.lineTo(e[0], e[1]); g.lineTo(p[0], p[1]); g.stroke();
+  g.strokeStyle = PAPER; g.lineWidth = 10; g.beginPath(); g.moveTo(bx, by); g.lineTo(e[0], e[1]); g.lineTo(p[0], p[1]); g.stroke();
+  for (const [x, y, r] of [[bx, by, 16], [e[0], e[1], 12], [p[0], p[1], 9]]) { g.beginPath(); g.arc(x, y, r, 0, 7); g.fillStyle = PAPER; g.fill(); g.lineWidth = 3; g.strokeStyle = INK; g.stroke(); }
+  g.fillStyle = INK; g.fillRect(bx - 46, by + 12, 92, 16);
+  const gr = carry ? 14 : 22; line(p[0] - gr, p[1] + 10, p[0] - gr, p[1] + 34, INK, 4); line(p[0] + gr, p[1] + 10, p[0] + gr, p[1] + 34, INK, 4); line(p[0] - gr, p[1] + 10, p[0] + gr, p[1] + 10, INK, 4);
+  // trial log: one mark per completed run (run 3 fails), and the measured rate
+  const done = Math.min(n, 4); txt('TRIALS', FX + 40, FY + 60, 'mono', 12, MUTED, 1, 'left', 2.5);
+  for (let i = 0; i < 4; i++) { const x = FX + 60 + i * 44, y = FY + 92; g.strokeStyle = HAIR; g.lineWidth = 1.5; g.strokeRect(x - 16, y - 16, 32, 32); if (i < done) (i === 2 ? cross : tick)(x, y, 18, i === 2 ? FAIL : PASS, eo(seg(u, 1.2 + (i + 1) * period, 1.2 + (i + 1) * period + .3))); }
+  const runs = 200 + Math.floor(eo(seg(u, 2, 8.4)) * 800), rate = 92.4 + 2.2 * eo(seg(u, 2, 8.4));
+  txt('SUCCESS RATE', FX + FW - 40, FY + 60, 'mono', 12, MUTED, 1, 'right', 2.5);
+  txt(rate.toFixed(1) + '%', FX + FW - 40, FY + 118, 'geist', 52, INK, 1, 'right', -1.5);
+  txt(`over ${runs} recorded runs`, FX + FW - 40, FY + 146, 'inter', 16, MUTED, 1, 'right');
+  g.restore();
+}
+function figSimulation(u) {
+  // a finned heat sink, solved cell by cell; then simulated curve checked against measured points
+  const gx = FX + 60, gy = FY + 70, cols = 26, rows = 9, cw = 22, ch = 26, sweep = seg(u, .9, 4.6);
+  const field = (i, j) => { const x = i / (cols - 1), y = j / (rows - 1); return Math.exp(-x * 2.2) * (.75 + .25 * Math.cos((y - .5) * 2.6)) + .06 * Math.sin(i * .9 + j * .7) * (1 - x); };
+  const ramp = v => { const c0 = [244, 247, 252], c1 = [46, 111, 214], c2 = [19, 19, 19]; const a = v < .6 ? c0 : c1, b = v < .6 ? c1 : c2, f = v < .6 ? v / .6 : (v - .6) / .4; return `rgb(${a.map((q, i) => Math.round(lerp(q, b[i], f))).join(',')})`; };
+  g.save(); g.globalAlpha = eo(seg(u, .2, .9));
+  for (let i = 0; i < cols; i++) for (let j = 0; j < rows; j++) {
+    const on = clamp((sweep * (cols + 4) - i) / 3); const x = gx + i * cw, y = gy + j * ch;
+    g.fillStyle = on > 0 ? ramp(field(i, j) * on) : PAPER; g.fillRect(x, y, cw - 1, ch - 1);
+  }
+  g.strokeStyle = INK; g.lineWidth = 2; g.strokeRect(gx - 1, gy - 1, cols * cw + 1, rows * ch + 1);
+  for (let f = 0; f < 6; f++) { const x = gx + 80 + f * 76; g.strokeRect(x, gy + rows * ch, 30, 70); }   // fins
+  txt('HEAT IN', gx - 6, gy + rows * ch / 2 + 4, 'mono', 11, INK, 1, 'right', 2);
+  // the solver front
+  if (sweep > 0 && sweep < 1) line(gx + sweep * cols * cw, gy - 10, gx + sweep * cols * cw, gy + rows * ch + 10, BLUE, 2);
+  // scale bar
+  for (let k = 0; k < 40; k++) { g.fillStyle = ramp(k / 39); g.fillRect(gx + cols * cw + 40, gy + rows * ch - (k + 1) * 6, 18, 6); }
+  txt('°C', gx + cols * cw + 49, gy - 10, 'mono', 11, MUTED, 1, 'center');
+  // validation plot
+  const px = FX + 60, py = FY + 420, pw = 600, ph = 140, sim = x => 82 * Math.exp(-x * 1.9) + 24;
+  const k2 = seg(u, 4.4, 6.4); line(px, py + ph, px + pw, py + ph, INK, 1.5, eo(seg(u, 4.2, 4.6))); line(px, py, px, py + ph, INK, 1.5, eo(seg(u, 4.2, 4.6)));
+  txt('TEMPERATURE ALONG THE PLATE', px, py - 14, 'mono', 11, MUTED, eo(seg(u, 4.2, 4.6)), 'left', 2);
+  const pts = [...Array(60)].map((_, i) => [px + pw * i / 59, py + ph - (sim(i / 59) - 20) / 90 * ph]);
+  g.strokeStyle = BLUE; g.lineWidth = 3; poly(pts, eo(k2)); g.stroke();
+  const meas = [.05, .16, .28, .41, .55, .7, .86].map((x, i) => [x, sim(x) + [2.1, -1.6, 1.2, -2.4, 1.8, -.9, 1.4][i]]);
+  meas.forEach(([x, v], i) => { const a = eo(seg(u, 5.2 + i * .12, 5.5 + i * .12)); if (a <= 0) return; g.beginPath(); g.arc(px + pw * x, py + ph - (v - 20) / 90 * ph, 6 * a, 0, 7); g.fillStyle = PAPER; g.fill(); g.strokeStyle = INK; g.lineWidth = 2; g.stroke(); });
+  txt('— simulated', px + pw + 30, py + 12, 'inter', 15, BLUE, eo(seg(u, 5, 5.4))); txt('○ measured', px + pw + 30, py + 34, 'inter', 15, INK, eo(seg(u, 5.6, 6)));
+  const va = eo(seg(u, 6.6, 7.2)); txt('MAX DEVIATION', FX + FW - 40, FY + 120, 'mono', 12, MUTED, va, 'right', 2.5); txt('3.1%', FX + FW - 40, FY + 180, 'geist', 52, INK, va, 'right', -1.5);
+  if (va > 0) { g.globalAlpha = va; g.fillStyle = PASS; g.fillRect(FX + FW - 170, FY + 212, 130, 34); txt('SL3 · VALIDATED', FX + FW - 105, FY + 235, 'mono', 12, PAPER, 1, 'center', 1.5); }
+  g.restore();
+}
+function figEngineering(u) {
+  // a simply supported beam, drawn like a blueprint: load, dimensions, the equation, the bending moment
+  const x0 = FX + 120, x1 = FX + 820, y = FY + 210, L = x1 - x0;
+  g.save();
+  const kb = eo(seg(u, .3, 1.2)); g.strokeStyle = INK; g.lineWidth = 2;
+  g.beginPath(); g.rect(x0, y, L * kb, 26); g.stroke();
+  for (let x = x0 + 8; x < x0 + L * kb - 4; x += 14) line(x, y + 26, x + 10, y, HAIR, 1);
+  const ks = eo(seg(u, 1.0, 1.5)); g.globalAlpha = ks;
+  g.beginPath(); g.moveTo(x0, y + 26); g.lineTo(x0 - 22, y + 64); g.lineTo(x0 + 22, y + 64); g.closePath(); g.stroke();
+  g.beginPath(); g.arc(x1, y + 40, 13, 0, 7); g.stroke(); line(x1 - 26, y + 56, x1 + 26, y + 56, INK, 2);
+  for (let x = x0 - 22; x < x0 + 22; x += 8) line(x, y + 64, x - 8, y + 74, INK, 1); for (let x = x1 - 26; x < x1 + 26; x += 8) line(x, y + 56, x - 8, y + 66, INK, 1);
+  g.globalAlpha = 1;
+  // distributed load
+  const kl = seg(u, 1.6, 2.6);
+  for (let i = 0; i <= 14; i++) { const x = x0 + L * i / 14, a = eo(seg(kl * 15 - i, 0, 1)); if (a <= 0) continue; const top = y - 90, tip = y - 6 - (1 - a) * 40;
+    line(x, top, x, tip, BLUE, 2, a); g.globalAlpha = a; g.fillStyle = BLUE; g.beginPath(); g.moveTo(x, tip + 4); g.lineTo(x - 6, tip - 8); g.lineTo(x + 6, tip - 8); g.fill(); g.globalAlpha = 1; }
+  line(x0, y - 90, x0 + L * eo(kl), y - 90, BLUE, 2);
+  txt('w = 6.0 kN/m', x0 + L / 2, y - 106, 'mono', 15, BLUE, eo(seg(u, 2.4, 2.8)), 'center', 1);
+  // dimension line
+  const kd = eo(seg(u, 2.7, 3.3)); line(x0, y + 110, x0 + L * kd, y + 110, INK, 1.2); line(x0, y + 96, x0, y + 124, INK, 1.2, kd); line(x1, y + 96, x1, y + 124, INK, 1.2, kd);
+  txt('L = 4.00 m', x0 + L / 2, y + 102, 'mono', 15, INK, kd, 'center', 1);
+  // the equation, typeset
+  rise('M', FX + 120, FY + 430, 'geist', 44, 3.5, INK, 'left', 0, 400); rise('max', FX + 152, FY + 440, 'geist', 20, 3.5, INK, 'left', 0, 400);
+  rise('=  wL² / 8  =  12.0 kN·m', FX + 200, FY + 430, 'geist', 44, 3.65, INK, 'left', -.5, 400);
+  // bending moment diagram
+  const km = seg(u, 4.4, 6.0), by = FY + 520, pts = [...Array(61)].map((_, i) => { const s = i / 60; return [x0 + L * s, by - 4 * s * (1 - s) * 70]; });
+  g.strokeStyle = BLUE; g.lineWidth = 3; poly(pts, eo(km)); g.stroke(); line(x0, by, x0 + L * eo(km), by, INK, 1.2);
+  if (km > 0) { g.save(); g.beginPath(); g.rect(x0, by - 80, L * eo(km), 80); g.clip(); g.globalAlpha = .12; g.fillStyle = BLUE; g.beginPath(); g.moveTo(x0, by); pts.forEach(p => g.lineTo(p[0], p[1])); g.lineTo(x1, by); g.fill(); g.restore(); }
+  txt('BENDING MOMENT', x0, by + 30, 'mono', 11, MUTED, eo(seg(u, 4.4, 4.8)), 'left', 2);
+  const kv = eo(seg(u, 6.6, 7.2)); if (kv > 0) { g.globalAlpha = kv; g.fillStyle = PASS; g.fillRect(FX + FW - 330, FY + 40, 290, 34); txt('VALIDATED · REFERENCE CASE 1', FX + FW - 185, FY + 63, 'mono', 12, PAPER, 1, 'center', 1.2); }
+  g.restore();
+}
+function figResearch(u) {
+  // a claim, its data, its fit; then a reviewer repeats it and the points land on the same line
+  g.save();
+  const ca = eo(seg(u, .4, 1.0)); g.globalAlpha = ca; g.strokeStyle = INK; g.lineWidth = 2; g.strokeRect(FX + 60, FY + 40, FW - 120, 92); g.globalAlpha = 1;
+  txt('CLAIM', FX + 84, FY + 68, 'mono', 11, MUTED, ca, 'left', 2.5);
+  rise('Bamboo fibre raises a beam’s stiffness by 18%.', FX + 84, FY + 112, 'geist', 30, .6, INK, 'left', -.4, 500);
+  const px = FX + 90, py = FY + 190, pw = 520, ph = 320, fit = x => .25 + .58 * x;
+  const ka = eo(seg(u, 1.3, 1.8)); line(px, py + ph, px + pw, py + ph, INK, 1.5, ka); line(px, py, px, py + ph, INK, 1.5, ka);
+  txt('FIBRE CONTENT →', px + pw, py + ph + 26, 'mono', 11, MUTED, ka, 'right', 2); txt('STIFFNESS ↑', px, py - 12, 'mono', 11, MUTED, ka, 'left', 2);
+  const rr = (s => () => (s = (s * 48271) % 2147483647) / 2147483647)(5);
+  const D = [...Array(24)].map((_, i) => { const x = .05 + .9 * i / 23 + (rr() - .5) * .03; return [x, fit(x) + (rr() - .5) * .14]; });
+  D.forEach(([x, y], i) => { const a = eo(seg(u, 1.8 + i * .05, 2.1 + i * .05)); if (a <= 0) return; g.beginPath(); g.arc(px + x * pw, py + ph - y * ph, 5.5 * a, 0, 7); g.fillStyle = INK; g.fill(); });
+  const kf = seg(u, 3.2, 4.2);
+  if (kf > 0) { g.save(); g.beginPath(); g.rect(px, py, pw * eo(kf), ph); g.clip(); g.fillStyle = 'rgba(46,111,214,.12)'; g.beginPath(); g.moveTo(px, py + ph - (fit(0) + .08) * ph); g.lineTo(px + pw, py + ph - (fit(1) + .05) * ph); g.lineTo(px + pw, py + ph - (fit(1) - .05) * ph); g.lineTo(px, py + ph - (fit(0) - .08) * ph); g.fill(); g.restore(); }
+  g.strokeStyle = BLUE; g.lineWidth = 3; poly([[px, py + ph - fit(0) * ph], [px + pw, py + ph - fit(1) * ph]], eo(kf)); g.stroke();
+  // reviewer reproduces: hollow points
+  const R2 = [...Array(14)].map((_, i) => { const x = .08 + .85 * i / 13 + (rr() - .5) * .03; return [x, fit(x) + (rr() - .5) * .13]; });
+  R2.forEach(([x, y], i) => { const a = eo(seg(u, 4.6 + i * .06, 4.9 + i * .06)); if (a <= 0) return; g.beginPath(); g.arc(px + x * pw, py + ph - y * ph, 7 * a, 0, 7); g.strokeStyle = PASS; g.lineWidth = 2.2; g.stroke(); });
+  // sources and verdict
+  const sx = FX + 680; txt('SOURCES', sx, py + 4, 'mono', 11, MUTED, eo(seg(u, 2.5, 2.9)), 'left', 2.5);
+  ['[1] Fibre tensile tests', '[2] Beam deflection data', '[3] Prior study, 2021'].forEach((s, i) => { const a = eo(seg(u, 2.7 + i * .3, 3.0 + i * .3)); txt(s, sx + 30, py + 44 + i * 36, 'inter', 16, INK, a); if (a > 0) tick(sx + 8, py + 39 + i * 36, 14, PASS, a); });
+  txt('REVIEWER', sx, py + 196, 'mono', 11, MUTED, eo(seg(u, 4.6, 5)), 'left', 2.5);
+  txt('Repeated · 14 runs · same result', sx, py + 228, 'inter', 16, INK, eo(seg(u, 5.2, 5.6)));
+  const kv = eo(seg(u, 6.4, 7.0)); if (kv > 0) { g.globalAlpha = kv; g.fillStyle = PASS; g.fillRect(sx, py + 262, 190, 34); txt('R3 · REPRODUCED', sx + 95, py + 285, 'mono', 12, PAPER, 1, 'center', 1.5); }
+  g.restore();
+}
+function figData(u) {
+  // raw civic rows on the left become a dashboard a named user can act on
+  g.save();
+  const rows = ['ward,date,aqi,pm25', 'W01,2026-11-14,118,61', 'W02,2026-11-14,142,74', 'W03,2026-11-14,97,48', 'W04,2026-11-14,163,88', 'W05,2026-11-14,121,63', 'W06,2026-11-14,88,41', 'W07,2026-11-14,176,95', 'W08,2026-11-14,131,69'];
+  const ka = eo(seg(u, .3, .8)); txt('SOURCE · OPEN API', FX + 60, FY + 50, 'mono', 11, MUTED, ka, 'left', 2.5);
+  rows.forEach((r, i) => { const a = eo(seg(u, .5 + i * .1, .8 + i * .1)), dim = seg(u, 3.6, 4.4); txt(r, FX + 60, FY + 92 + i * 30, 'mono', 15, i ? INK : MUTED, a * (1 - .65 * dim), 'left', .5); });
+  // arrow
+  const kx = eo(seg(u, 2.0, 2.6)); line(FX + 400, FY + 220, FX + 400 + 60 * kx, FY + 220, BLUE, 2); if (kx > .9) { g.fillStyle = BLUE; g.beginPath(); g.moveTo(FX + 468, FY + 220); g.lineTo(FX + 456, FY + 213); g.lineTo(FX + 456, FY + 227); g.fill(); }
+  txt('clean · compute · check', FX + 430, FY + 248, 'mono', 11, BLUE, kx, 'center', 1);
+  // dashboard card
+  const dx = FX + 500, dy = FY + 60, dw = 390, dh = 470, kc = eo(seg(u, 2.4, 3.0));
+  if (kc > 0) { g.globalAlpha = kc; g.fillStyle = '#FAFAF8'; g.fillRect(dx, dy, dw, dh); g.strokeStyle = INK; g.lineWidth = 1.5; g.strokeRect(dx, dy, dw, dh); g.globalAlpha = 1; }
+  txt('AIR QUALITY · WARDS 1–8', dx + 24, dy + 36, 'mono', 11, MUTED, kc, 'left', 2);
+  txt('176', dx + 24, dy + 104, 'geist', 64, INK, eo(seg(u, 3.0, 3.4)), 'left', -2); txt('AQI · Ward 7 · highest today', dx + 24, dy + 132, 'inter', 15, MUTED, eo(seg(u, 3.1, 3.5)));
+  const vals = [118, 142, 97, 163, 121, 88, 176, 131], bx = dx + 24, bw = 36, bgap = 9, base = dy + 400;
+  vals.forEach((v, i) => { const k = eo(seg(u, 3.3 + i * .08, 3.9 + i * .08)), h = (v / 180) * 200 * k, sel = u > 5.3 && i === 6;
+    g.fillStyle = sel ? BLUE : v > 150 ? INK : '#BDBDB8'; g.fillRect(bx + i * (bw + bgap), base - h, bw, h); txt('W' + (i + 1), bx + i * (bw + bgap) + bw / 2, base + 22, 'mono', 11, MUTED, k, 'center'); });
+  line(dx + 24, base, dx + dw - 24, base, INK, 1, kc);
+  // a named user finds the worst ward and opens it
+  const cu = seg(u, 4.4, 5.3), cx = lerp(dx + dw + 60, bx + 6 * (bw + bgap) + bw / 2, eio(cu)), cy = lerp(dy + dh + 40, base - 100, eio(cu));
+  if (u > 4.4) { g.fillStyle = INK; g.beginPath(); g.moveTo(cx, cy); g.lineTo(cx, cy + 22); g.lineTo(cx + 6, cy + 17); g.lineTo(cx + 10, cy + 26); g.lineTo(cx + 14, cy + 24); g.lineTo(cx + 10, cy + 15); g.lineTo(cx + 17, cy + 15); g.closePath(); g.fill(); }
+  if (u > 5.3) { const a = eo(seg(u, 5.3, 5.6)); g.globalAlpha = a; g.fillStyle = INK; g.fillRect(cx + 22, cy - 50, 210, 54); txt('Ward 7 · PM2.5 95 µg/m³', cx + 34, cy - 30, 'inter', 14, PAPER); txt('Alert sent to ward office', cx + 34, cy - 10, 'inter', 14, '#CFCFCA'); g.globalAlpha = 1; }
+  const kv = eo(seg(u, 6.6, 7.2)); txt('USER TEST', FX + 60, FY + 420, 'mono', 11, MUTED, kv, 'left', 2.5);
+  txt('Ward officer · task done in 38 s', FX + 60, FY + 452, 'inter', 17, INK, kv); if (kv > 0) tick(FX + 340, FY + 446, 18, PASS, kv);
+  txt('Numbers match source', FX + 60, FY + 484, 'inter', 17, INK, eo(seg(u, 7, 7.5))); if (u > 7) tick(FX + 260, FY + 478, 18, PASS, eo(seg(u, 7, 7.5)));
+  g.restore();
+}
+function figHackathon(u) {
+  // the clock runs; a team of four; many ideas, cut to the core; a prototype that runs
+  g.save();
+  const left = 48 * 3600 - eo(seg(u, .3, 8.4)) * (47 * 3600 + 52 * 60), hh = Math.floor(left / 3600), mm = Math.floor(left % 3600 / 60), ss = Math.floor(left % 60);
+  txt('TIME LEFT', FX + 60, FY + 54, 'mono', 11, MUTED, eo(seg(u, .2, .6)), 'left', 2.5);
+  txt(`${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}`, FX + 60, FY + 120, 'mono', 56, hh < 6 ? FAIL : INK, eo(seg(u, .2, .6)), 'left', 1);
+  // team
+  const tm = [['ME', 0], ['EE', 1], ['CS', 2], ['DES', 3]], tx = FX + 560, ty = FY + 90;
+  txt('TEAM · MIXED DISCIPLINES', tx, FY + 54, 'mono', 11, MUTED, eo(seg(u, .8, 1.2)), 'left', 2.5);
+  tm.forEach(([s, i]) => { const a = eo(seg(u, 1.0 + i * .15, 1.3 + i * .15)), x = tx + 20 + i * 86; if (a <= 0) return; if (i) line(x - 86 + 26, ty + 22, x - 26, ty + 22, INK, 1.5, a); g.globalAlpha = a; g.beginPath(); g.arc(x, ty + 22, 26, 0, 7); g.fillStyle = INK; g.fill(); g.globalAlpha = 1; txt(s, x, ty + 27, 'mono', 13, PAPER, a, 'center', 1); });
+  // ideas: twelve cards; at plan time most are struck out, two remain
+  const ideas = ['Mobile app', 'Dashboard', 'Sensor kit', 'Chatbot', 'Splint v1', 'Strap fit', 'AR guide', 'Payments', 'Login', 'Inventory', 'Sizing gauge', 'Report PDF'], core = [4, 10];
+  ideas.forEach((s, i) => { const col = i % 4, row = Math.floor(i / 4), x = FX + 60 + col * 150, y = FY + 190 + row * 64, a = eo(seg(u, 1.6 + i * .06, 1.9 + i * .06));
+    const cut = !core.includes(i) ? eo(seg(u, 3.4 + i * .05, 3.8 + i * .05)) : 0, keep = core.includes(i) ? eo(seg(u, 4.2, 4.6)) : 0;
+    if (a <= 0) return; g.globalAlpha = a * (1 - .7 * cut); g.strokeStyle = keep ? BLUE : INK; g.lineWidth = keep ? 2.5 : 1.2; g.strokeRect(x, y, 136, 46);
+    if (keep) { g.fillStyle = 'rgba(46,111,214,.08)'; g.fillRect(x, y, 136, 46); }
+    txt(s, x + 14, y + 29, 'inter', 15, keep ? BLUE : INK, 1); if (cut > 0) line(x + 8, y + 23, x + 8 + 120 * cut, y + 23, FAIL, 2); g.globalAlpha = 1; });
+  txt('PLAN · THE CORE ONLY', FX + 60, FY + 174, 'mono', 11, MUTED, eo(seg(u, 3.2, 3.6)), 'left', 2.5);
+  // prototype: a low-cost splint with a sizing gauge, drawn as it is built
+  const px = FX + 680, py = FY + 230, kp = seg(u, 4.8, 6.6);
+  txt('PROTOTYPE', px, FY + 174, 'mono', 11, MUTED, eo(seg(u, 4.8, 5.2)), 'left', 2.5);
+  g.strokeStyle = INK; g.lineWidth = 3; g.lineJoin = 'round';
+  poly([[px, py + 40], [px + 40, py], [px + 200, py], [px + 220, py + 30], [px + 220, py + 200], [px + 180, py + 230], [px + 20, py + 230], [px, py + 200], [px, py + 40]], eo(kp)); g.stroke();
+  for (let i = 0; i < 5; i++) { const a = eo(seg(u, 5.6 + i * .12, 5.9 + i * .12)); line(px + 40, py + 50 + i * 36, px + 180, py + 50 + i * 36, BLUE, 3, a); txt(['S', 'M', 'L', 'XL', 'XXL'][i], px + 196, py + 55 + i * 36, 'mono', 11, BLUE, a, 'left'); }
+  const kv = eo(seg(u, 6.8, 7.3)); if (kv > 0) { g.globalAlpha = kv; g.fillStyle = PASS; g.fillRect(FX + 60, FY + 420, 270, 34); txt('DEMO · RUNS THE STATED CORE', FX + 195, FY + 443, 'mono', 12, PAPER, 1, 'center', 1); g.globalAlpha = 1;
+    txt('Brief: a clinic needs splints in 5 sizes, under ₹200.', FX + 60, FY + 500, 'inter', 16, MUTED, kv); }
+  g.restore();
+}
+const FIGS = [figPhysical, figSimulation, figEngineering, figResearch, figData, figHackathon];
+
+// ---------------------------------------------------------------- scenes
+function intro(t) {
+  paper(); header(-1, eo(seg(t, .2, .8)));
+  const gx = 120, gy = 330, sz = 46, gap = 210;
+  CL.forEach((c, i) => { const a = eo(seg(t, 1.0 + i * .12, 1.4 + i * .12)), fly = eio(seg(t, 5.0, 6.0));
+    if (i === 0) { glyph('hex', 'hex', 0, lerp(gx + sz + i * gap, 120 + 36, fly), lerp(gy, 330, fly), lerp(sz, 36, fly), INK, a); }
+    else glyph(c.g, c.g, 0, gx + sz + i * gap, gy, sz, INK, a * (1 - eio(seg(t, 4.8, 5.4))));
+    txt(c.name.toUpperCase(), gx + i * gap, gy + 90, 'mono', 11, MUTED, a * (1 - eio(seg(t, 4.8, 5.4))), 'left', 1.5); });
+  rise('Six classes.', 120, 620, 'geist', 120, 2.0, INK, 'left', -4, 500, 4.9);
+  rise('One discipline of proof.', 120, 760, 'geist', 120, 2.5, '#9A9A95', 'left', -4, 500, 4.9);
+}
+function klass(t) {
+  const i = Math.min(5, Math.floor((t - T0) / SEG)), c = CL[i], u = t - T0 - i * SEG, out = SEG - .7;
+  paper(); header(i, 1);
+  // glyph: morphs from the previous class's mark
+  const prev = i ? CL[i - 1].g : 'hex'; glyph(prev, c.g, i ? seg(u, 0, .8) : 1, 156, 330, 36, INK, 1);
+  const ox = -40 * eio(seg(u, out, SEG)), oa = 1 - eio(seg(u, out, SEG - .15));
+  g.save(); g.translate(ox, 0); g.globalAlpha = oa;
+  rise(`CLASS ${String(i + 1).padStart(2, '0')}`, 220, 342, 'mono', 14, MUTED, T0 + i * SEG + .2, 'left', 3);
+  const nl = wrap(c.name, 640, 'geist', 92); nl.forEach((s, k) => rise(s, 120, 488 + k * 96, 'geist', 92, T0 + i * SEG + .35 + k * .1, INK, 'left', -3));
+  const py = 488 + nl.length * 96 - 20;
+  wrap(c.phil, 600, 'geist', 34, 400).forEach((s, k) => rise(s, 120, py + k * 44, 'geist', 34, T0 + i * SEG + .7 + k * .08, '#4A4A47', 'left', -.6, 400));
+  const la = eo(seg(u, 6.4, 7.0)); txt('YOU LEAVE WITH', 120, 812, 'mono', 12, MUTED, la, 'left', 2.5);
+  wrap(c.leave, 600, 'inter', 22).forEach((s, k) => txt(s, 120, 846 + k * 30, 'inter', 22, INK, la));
+  frame(FX, FY, FW, FH, `FIG. ${String(i + 1).padStart(2, '0')} — ${c.fig.toUpperCase()}`, seg(u, .1, .9));
+  g.save(); g.beginPath(); g.rect(FX + 2, FY + 2, FW - 4, FH - 4); g.clip(); FIGS[i](u); g.restore();
+  chain(c, u, eo(seg(u, .3, .9)));
+  g.restore();
+}
+function spine(t) {
+  const u = t - SPINE; paper(); header(-1, 1);
+  const ga = eo(seg(u, .1, .6)); CL.forEach((c, i) => { glyph(c.g, c.g, 0, 156 + i * 70, 250, 20, INK, ga * eo(seg(u, .1 + i * .06, .5 + i * .06))); });
+  txt('EVERY CLASS · THE SAME LIFE OF A WORK', 600, 258, 'mono', 13, MUTED, ga, 'left', 3);
+  const steps = ['Question', 'Author', 'Build', 'Test', 'Certify', 'Share', 'Combine'], x0 = 120, x1 = 1800, y = 470, k = seg(u, .6, 3.6);
+  line(x0, y, x0 + (x1 - x0) * eo(k), y, INK, 2);
+  steps.forEach((s, i) => { const x = x0 + (x1 - x0) * i / 6, a = eo(seg(k * 6.4 - i, 0, .6)), cert = i === 4;
+    g.beginPath(); g.arc(x, y, cert ? 12 : 8, 0, 7); g.globalAlpha = a; g.fillStyle = cert ? BLUE : INK; g.fill(); g.globalAlpha = 1;
+    txt(s, x, y + 56, 'geist', cert ? 34 : 30, cert ? BLUE : INK, a, i === 0 ? 'left' : i === 6 ? 'right' : 'center', -.6, cert ? 500 : 400);
+    txt(String(i + 1), x, y - 30, 'mono', 12, MUTED, a, i === 0 ? 'left' : i === 6 ? 'right' : 'center'); });
+  rise('Models talk.', 120, 780, 'geist', 76, SPINE + 3.9, '#9A9A95', 'left', -2.4, 500, SPINE + 6.4);
+  rise('Tools compute.', 620, 780, 'geist', 76, SPINE + 4.3, '#9A9A95', 'left', -2.4, 500, SPINE + 6.4);
+  rise('People certify.', 1190, 780, 'geist', 76, SPINE + 4.7, INK, 'left', -2.4, 500, SPINE + 6.4);
+}
+const LOGO = new Promise(r => { const i = new Image(); i.onload = () => r(i); i.onerror = () => r(null); i.src = 'assets/sun-full.svg'; });
+let LOGO_T = null;
+async function endCard(t) {
+  const u = t - (SPINE + 7); paper(); g.fillStyle = `rgba(255,255,255,${eo(seg(u, 0, .6)) * .85})`; g.fillRect(0, 0, W, H);
+  const im = await LOGO; if (im && !LOGO_T) {   // ink-tinted, trimmed copy of the traced mark
+    const w = 220, h = w * im.height / im.width, o = document.createElement('canvas'); o.width = w; o.height = Math.ceil(h); const c = o.getContext('2d');
+    c.drawImage(im, 0, 0, w, h); c.globalCompositeOperation = 'source-in'; c.fillStyle = INK; c.fillRect(0, 0, w, h);
+    const d = c.getImageData(0, 0, o.width, o.height).data; let y0 = o.height, y1 = 0; for (let y = 0; y < o.height; y++) for (let x = 0; x < w; x++) if (d[(y * w + x) * 4 + 3] > 8) { y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
+    LOGO_T = document.createElement('canvas'); LOGO_T.width = w; LOGO_T.height = y1 - y0 + 1; LOGO_T.getContext('2d').drawImage(o, 0, -y0);
+  }
+  if (LOGO_T) { const a = eo(seg(u, .2, 1.0)); g.save(); g.globalAlpha = a; g.drawImage(LOGO_T, W / 2 - LOGO_T.width / 2, 180 + (1 - a) * 16); g.restore(); }
+  rise('SAMATWAM', W / 2 + 7, 600, 'geist', 34, SPINE + 7 + .8, INK, 'center', 14);
+  rise('Never whole. Never incomplete. Always building.', W / 2, 676, 'geist', 44, SPINE + 7 + 1.3, INK, 'center', -1, 400);
+  txt(CL.map(c => c.name.toUpperCase()).join('   ·   '), W / 2, 790, 'mono', 13, MUTED, eo(seg(u, 2.2, 2.8)), 'center', 2.5);
+  txt('COHORT 1 · ONLINE · JANUARY 2027', W / 2, 1000, 'mono', 13, INK, eo(seg(u, 2.8, 3.4)), 'center', 3);
+}
+const FONTS = Promise.all(['500 92px Geist', '400 34px Geist', '14px GeistMono', '16px Inter'].map(f => document.fonts.load(f, 'Aa0')));
+window.render = async function (t) {
+  await FONTS; T = t;
+  if (t < T0) return intro(t);
+  if (t < SPINE) return klass(t);
+  if (t < SPINE + 7) return spine(t);
+  return endCard(t);
+};
+window.TEXTS = () => []; window.READY = true;
+</script></body></html>
