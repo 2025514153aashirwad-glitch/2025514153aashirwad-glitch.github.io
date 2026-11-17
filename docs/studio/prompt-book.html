@@ -1,0 +1,342 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Samatwam Studio Prompt Book</title>
+<style>
+@font-face{font-family:Inter;src:url(file:///home/user/lemomo-ai/lemo-opuscar/films/samatwam-teaser/fonts/Inter.ttf) format('truetype');font-weight:100 900}
+@font-face{font-family:SG;src:url(file:///home/user/lemomo-ai/lemo-opuscar/films/samatwam-teaser/fonts/SpaceGrotesk.ttf) format('truetype');font-weight:300 700}
+@font-face{font-family:JBM;src:url(file:///home/user/lemomo-ai/lemo-opuscar/films/samatwam-teaser/fonts/JetBrainsMono.ttf) format('truetype');font-weight:100 800}
+@page{size:A4;margin:17mm 15mm 18mm 15mm}
+body{font-family:Inter,sans-serif;font-size:9.8pt;line-height:1.48;color:#141414;margin:0}
+h1{font-family:SG;font-size:30pt;line-height:1.05;margin:0 0 8pt}
+h2{font-family:SG;font-size:15.5pt;margin:14pt 0 6pt;padding-top:6pt;border-top:1px solid #141414;page-break-after:avoid}
+h3{font-family:SG;font-size:11.5pt;margin:12pt 0 3pt;page-break-after:avoid}
+p{margin:0 0 6pt}
+.kicker{font-family:JBM;font-size:7.8pt;letter-spacing:2px;color:#5A5A5A;text-transform:uppercase}
+.cover{border:1.5px solid #141414;padding:18pt 20pt;margin-bottom:12pt}
+.lede{font-size:11.5pt;color:#333}
+table{width:100%;border-collapse:collapse;margin:5pt 0 9pt;font-size:8.5pt}
+tr{page-break-inside:avoid}
+th{background:#ececea;text-align:left;font-weight:700;padding:4pt 6pt;border:1px solid #c9c9c6}
+td{padding:4pt 6pt;border:1px solid #d9d9d6;vertical-align:top}
+code,.mono{font-family:JBM;font-size:8pt}
+pre{font-family:JBM;font-size:7.7pt;line-height:1.42;background:#f4f4f2;border:1px solid #E2E2E0;border-left:3px solid #141414;padding:7pt 9pt;white-space:pre-wrap;margin:3pt 0 8pt;page-break-inside:avoid}
+.box{border-left:3px solid #B8933B;background:#faf7ef;padding:6pt 10pt;margin:7pt 0;page-break-inside:avoid}
+.warn{border-left:3px solid #B3261E;background:#fbf1f0;padding:6pt 10pt;margin:7pt 0;page-break-inside:avoid}
+.tag{display:inline-block;font-family:JBM;font-size:7.2pt;border:1px solid #999;border-radius:3px;padding:0 4pt;color:#333;white-space:nowrap}
+.ok{border-color:#1F7A3A;color:#1F7A3A}.nc{border-color:#B3261E;color:#B3261E}.ck{border-color:#8A6D1A;color:#8A6D1A}
+ol,ul{margin:2pt 0 7pt 16pt;padding:0}li{margin-bottom:2pt}
+.small{font-size:8.2pt;color:#5A5A5A}
+.pb{page-break-before:always}
+.when{font-size:8.6pt;color:#5A5A5A;margin:0 0 2pt}
+.flow{display:flex;gap:4pt;margin:6pt 0 10pt}
+.flow div{flex:1;border:1px solid #141414;padding:5pt 6pt;font-size:8pt}
+.flow b{font-family:SG;font-size:9.5pt;display:block}
+</style></head><body>
+
+<div class="cover">
+  <div class="kicker">Internal production manual · Samatwam Org · November 2026</div>
+  <h1>Master Control<br>Prompt Book</h1>
+  <p class="lede">How to use the free studio tools now installed alongside the film library, with ready-to-paste prompts for every stage, from brief to finished, checked, logged video.</p>
+  <p class="small">For internal production use only. Not for publication. Everything listed here is free to use, with no purchase or subscription beyond the Claude Pro plan already in place.</p>
+</div>
+
+<h2>1. How to use this book</h2>
+<ol>
+<li><b>Open a session</b> in the <span class="mono">samatwam-films</span> environment (the one with the studio tools). Paste the <b>Master Control Prompt</b> (section 4) first. It sets the rules, brand and quality bars for the whole session.</li>
+<li><b>Pick the prompts</b> for the job from the chains in section 3 and paste them one at a time. Replace anything in <span class="mono">{curly braces}</span>. Leave everything else as written.</li>
+<li><b>Look before you approve.</b> Every prompt ends by sending you stills or a contact sheet. Reply "approved" or say what to change. Nothing moves to the next stage without your yes.</li>
+<li><b>One film per session</b> keeps usage low. Ask for the cheap checks (stills, a 10-second test) before the full render.</li>
+</ol>
+<div class="box"><b>Usage tip.</b> On Claude Pro, the expensive part is long back-and-forth, not rendering. One clear prompt with every decision filled in costs far less than five vague ones. The prompts here are written to be complete in one go.</div>
+
+<h2>2. What is installed, and what it does</h2>
+<table>
+<tr><th style="width:21%">Tool</th><th>What it gives the films</th><th style="width:21%">Speed on this machine</th><th style="width:12%">Status</th></tr>
+<tr><td><b>Film library</b> (Lemo-Opuscar)</td><td>Code-drawn motion graphics, recorded frame-perfect. The base of all Samatwam films so far.</td><td>Fast</td><td><span class="tag ok">Ready</span></td></tr>
+<tr><td><b>Blender 4.5 LTS</b> (Cycles)</td><td>Real 3D: true light, reflections, brass, glass, paper, wood, depth of field, motion blur. Scripted, so prompts can drive it.</td><td>About 34 s per full-HD frame (64 samples, denoised). A 10-second hero shot at 24 fps takes about 2.3 h.</td><td><span class="tag ok">Ready</span></td></tr>
+<tr><td><b>Poly Haven assets</b></td><td>Free studio and dawn lighting maps (3 included) and real materials (wood table, marble, rusted metal). More can be fetched any time.</td><td>Instant</td><td><span class="tag ok">Ready</span></td></tr>
+<tr><td><b>three.js + postprocessing</b></td><td>Real-time 3D inside the browser films: lit materials, bloom, depth of field, film grain.</td><td>Software graphics only (no GPU), so keep scenes light</td><td><span class="tag ok">Ready</span></td></tr>
+<tr><td><b>three-gpu-pathtracer</b></td><td>Physically lit stills from three.js scenes (posters, end cards).</td><td>Slow without a GPU. Use for stills, not motion.</td><td><span class="tag ok">Ready</span></td></tr>
+<tr><td><b>Theatre.js</b></td><td>Hand-eased camera and object timelines saved as a file the film reads.</td><td>Fast</td><td><span class="tag ok">Ready</span></td></tr>
+<tr><td><b>Lottie</b></td><td>Plays After-Effects-style vector animations (icons, logo stings) inside a film.</td><td>Fast</td><td><span class="tag ok">Ready</span></td></tr>
+<tr><td><b>Manim</b></td><td>Exact diagram and maths animation (graphs, step-by-step logic, equations).</td><td>Fast</td><td><span class="tag ok">Ready</span></td></tr>
+<tr><td><b>OpenColorIO</b></td><td>Proper colour management: one consistent look across Blender plates and canvas frames, plus exportable LUTs.</td><td>Fast</td><td><span class="tag ok">Ready</span></td></tr>
+<tr><td><b>Real-ESRGAN</b></td><td>Upscales frames 2× or 4× (full-HD to 4K posters, or sharpening small plates).</td><td>About 10 s for a 4× upscale of a small frame. Use for stills and short shots only.</td><td><span class="tag ok">Ready</span></td></tr>
+<tr><td><b>Whisper speech check</b></td><td>Listens to the narration and confirms every line was spoken correctly and in sync with the captions.</td><td>Seconds per line</td><td><span class="tag ok">Ready</span></td></tr>
+<tr><td><b>Kokoro narrator</b></td><td>Offline English narrator (current films use the British voice "George").</td><td>Fast</td><td><span class="tag ok">Ready</span></td></tr>
+<tr><td><b>Indic Parler voice</b></td><td>Offline Indian English and Hindi narration, with the voice described in words ("calm, warm, unhurried").</td><td>About a minute per line</td><td><span class="tag ck">Needs your step</span></td></tr>
+<tr><td><b>Frame smoothing</b></td><td>Smoother slow motion and motion blur, using ffmpeg's built-in interpolation and Blender's real motion blur.</td><td>Fast</td><td><span class="tag ok">Ready</span></td></tr>
+<tr><td>Microsoft "Prabhat" voice</td><td>Indian English voice from the original brief</td><td>Its service will not connect from the cloud machine</td><td><span class="tag nc">Not possible here</span></td></tr>
+<tr><td>RIFE interpolation weights</td><td>Learned frame interpolation</td><td>Weights are only on Google Drive, which is not reachable</td><td><span class="tag nc">Not possible here</span></td></tr>
+<tr><td>ComfyUI / Wan video models</td><td>Generated footage</td><td>Need a strong GPU; this machine has none</td><td><span class="tag nc">Not possible here</span></td></tr>
+</table>
+<div class="warn"><b>Your one step for the Indian voice.</b> Log in at huggingface.co, open <span class="mono">ai4bharat/indic-parler-tts</span> and press "Agree and access" (free). Then create a free <b>Read</b> token under Settings → Access Tokens and save it in this environment's network secrets for <span class="mono">huggingface.co</span>. The token saved during setup was refused as invalid, so it needs replacing. Until then, prompts fall back to the Kokoro narrator.</div>
+
+<h2 class="pb">3. Strategy: one pipeline, five stages</h2>
+<div class="flow">
+<div><b>1 · Brief</b>Treatment, beat sheet, timing, voice lines. <i>P1</i></div>
+<div><b>2 · Look</b>Three style frames approved before any motion. <i>P2</i></div>
+<div><b>3 · Build</b>Canvas film, Blender hero shots, 3D, diagrams. <i>P3–P10</i></div>
+<div><b>4 · Finish</b>Voice, music, grade, upscale, smoothing, captions. <i>P11–P16</i></div>
+<div><b>5 · Check &amp; ship</b>QA, delivery, logging. <i>P18–P19</i></div>
+</div>
+<p><b>The core idea: hybrid films.</b> The canvas library stays the backbone: it is fast, exact and on-brand. The new tools are added only where they make a visible difference.</p>
+<ul>
+<li><b>Hero shots</b> (the 2–4 moments a viewer remembers) go to Blender for real light and material.</li>
+<li><b>Everything else</b> stays code-drawn, then gets the same colour grade, so the two halves match.</li>
+</ul>
+<p>Render cost on this machine sets the budget. At about 34 s per frame, spend Blender time only on shots of 10 seconds or less, and render them overnight.</p>
+
+<h3>Which tool for which job</h3>
+<table>
+<tr><th style="width:30%">The shot needs…</th><th style="width:30%">Use</th><th>Why</th></tr>
+<tr><td>Graphic, typographic, map or UI motion</td><td>Film library (P3)</td><td>Exact, fast, already on-brand</td></tr>
+<tr><td>Real material: brass, glass, paper glow, wood, hide</td><td>Blender plate (P4) composited into the film (P5)</td><td>True light transport sells "physical"</td></tr>
+<tr><td>Light 3D moving with the graphics</td><td>three.js + postprocessing (P6)</td><td>Lives in the same timeline as the canvas</td></tr>
+<tr><td>A poster or end card that must look premium</td><td>Path-traced still (P7) + 4× upscale (P15)</td><td>Quality without motion cost</td></tr>
+<tr><td>A camera move that must feel hand-made</td><td>Theatre.js (P8)</td><td>Hand-eased curves beat formula easing</td></tr>
+<tr><td>Diagrams, flows, step-by-step logic</td><td>Manim (P9)</td><td>Precise and readable</td></tr>
+<tr><td>Logo sting or icon animation</td><td>Lottie (P10)</td><td>Reuse designer-made vector motion</td></tr>
+</table>
+
+<h3>Prompt chains by job</h3>
+<table>
+<tr><th style="width:26%">Job</th><th>Paste in this order</th></tr>
+<tr><td>New film, standard</td><td>Master → P1 → P2 → P3 → P11 → P12 → P13 → P14 → P18 → P19</td></tr>
+<tr><td>New film, premium (hybrid)</td><td>Master → P1 → P2 → P4 → P3 → P5 → P8 → P11 → P12 → P13 → P14 → P16 → P18 → P19</td></tr>
+<tr><td>Upgrade an existing film</td><td>Master → P20 (names the film) → P4/P6 for the chosen shots → P5 → P14 → P18 → P19</td></tr>
+<tr><td>Explainer / data film</td><td>Master → P1 → P2 → P9 → P3 → P11 → P12 → P13 → P18 → P19</td></tr>
+<tr><td>Reel (9:16, 15–30 s)</td><td>Master → P17 → P12 → P13 → P18 → P19</td></tr>
+<tr><td>Poster / thumbnail only</td><td>Master → P7 → P15 → P18 (stills part)</td></tr>
+</table>
+
+<h2 class="pb">4. The Master Control Prompt</h2>
+<p class="when">Paste this first in every new session. It is long on purpose: it saves many corrections later.</p>
+<pre>MASTER CONTROL: SAMATWAM STUDIO SESSION
+
+You are my film production team for Samatwam Org. I am Aish. I do not read
+code. Explain everything in plain words, show me pictures, and ask me only
+for decisions that are mine to make.
+
+WORKSPACE
+- Film library: /home/user/lemomo-ai/lemo-opuscar (read-only reference; build films in
+  its films/ folder, deliver copies to my site repo).
+- Site repo: /home/user/2025514153aashirwad-glitch.github.io, branch {branch name}.
+  Deliver to films/{film-folder}/ and docs/.
+- Studio tools: /home/user/tools. Blender (blender), web 3D libraries (tools/web),
+  Real-ESRGAN (tools/esrgan), Poly Haven lighting and materials (tools/assets), Whisper
+  models (tools/whisper), Indic Parler voice (tools/parler/bin/python). Manim,
+  OpenColorIO and faster-whisper: tools/py/bin/python. Poly Haven assets are CC0.
+  The environment's setup script reinstalls all of these on a fresh machine. If the
+  film library is missing, clone github.com/lemomo-ai/lemo-opuscar and run its setup.
+  Check that a tool runs before you assume it does.
+- No GPU. Use 2 render workers (4 runs out of memory). WebGL needs
+  LEMO_ANGLE=swiftshader. Put ffmpeg 7+ first on PATH before mux.sh.
+
+BRAND (never break)
+- Colours: ink #141414, muted #5A5A5A, line #E2E2E0, pass green #1F7A3A.
+  Gold #B8933B only where something is earned, never decoration.
+- Fonts: Space Grotesk (titles), Inter (body), JetBrains Mono (labels),
+  Noto Sans Devanagari (Hindi).
+- Official documents and on-screen text never mention Claude or AI.
+- Do not touch Framer unless I ask.
+
+QUALITY BARS (a film is not done until all pass)
+1. Look: style frames approved by me before motion starts.
+2. Motion: no stray lines, no pops, no objects passing through each other;
+   every move eased; holds long enough to read (about 0.3 s per word on screen).
+3. Text: every on-screen word readable at phone size; checked with readcheck.
+4. Light: no unintended black or blown-white frames (blackdetect clean except
+   intended darks, which you list).
+5. Sound: narration about 10 dB over music; master at -14 LUFS (+/-1),
+   true peak below -1 dBTP.
+6. Voice: Whisper transcript matches the script; captions in sync within 0.15 s.
+7. Delivery: mp4 + srt (English, plus Hindi if asked), poster.jpg, contact sheet,
+   TREATMENT.md, CREDITS, build.sh, sources and fonts, committed and pushed.
+
+WORKING RULES
+- Stills first, then a 10 s test, then the full render. Show me each.
+- Use tokens carefully: no long code dumps in chat, short status lines only.
+- Never claim something works without checking it. Say plainly what failed.
+- After each output: log it in Airtable (base appg8fTRMoVi3twdH, table Assets:
+  Asset, Series "VIS", Link, Status Draft/Checked/Held, Notes; leave Tool empty).
+- Do not create Linear issues unless I ask.
+
+Reply "Ready" plus a one-line check that each studio tool runs. Then wait for my next prompt.</pre>
+
+<h2 class="pb">5. Feature prompts</h2>
+
+<h3>P1 · Brief to treatment</h3>
+<p class="when">Turns an idea into a timed plan. Approve this before anything is drawn.</p>
+<pre>Write the treatment for "{film title}" ({length} s, {fps} fps, {16:9 or 9:16}).
+Audience: {schools / industry / partners}. One idea the viewer must leave with:
+"{single sentence}". Mood: {three words}. Reference film from our series: {e.g. Film 05}.
+Give me: a beat sheet with timestamps, the narration lines (short, spoken English,
+about 2.4 words per second), on-screen text, where the gold is earned, which 2-4 shots
+are hero shots (Blender candidates) and why, the sound idea, and the end card.
+Save it as TREATMENT.md. Show it to me as a short table, not the whole file.</pre>
+
+<h3>P2 · Look lock (style frames)</h3>
+<pre>From the approved treatment, make 3 style frames at full resolution: the opening,
+the main hero moment and the end card. Use the real fonts and brand colours. If a
+hero shot is planned in Blender, make that frame in Blender with the real material
+and lighting ({studio_small_09 / brown_photostudio_02 / kiara_1_dawn}).
+Send the 3 frames side by side and list the 3 choices you made for each. Wait for my approval.</pre>
+
+<h3>P3 · Canvas film build</h3>
+<pre>Build "{film title}" in the film library following the page contract (DUR, render(t),
+READY, EV, TEXTS) and our shared kit (common.js, samatwam_audio.py). Match the approved
+style frames exactly. Then render stills at {list of 6-8 key times} and a contact sheet,
+and run readcheck. Show me the contact sheet. Only after I approve, render the full
+video at {fps} fps with 2 workers.</pre>
+
+<h3>P4 · Blender hero shot (photoreal plate)</h3>
+<p class="when">The main quality upgrade. Keep each shot at 10 s or less. Render overnight.</p>
+<pre>Make the hero shot "{shot name}" ({seconds} s, {fps} fps) in Blender with a Python
+script saved next to the film (so it can be rebuilt).
+- Objects: {e.g. brass plate with engraved mark, acrylic sheet, walnut base}.
+- Materials: real physical materials. Use Poly Haven ones from /home/user/tools/assets
+  where they fit ({wood_table_001 / marble_01 / rusty_metal_02}); fetch others free
+  from Poly Haven or ambientCG if needed and note their CC0 licence in CREDITS.
+- Light: HDRI {name} plus one key light; warm or cool to match the grade.
+- Camera: {move, e.g. slow 20 degree orbit and push-in}; real depth of field focused on
+  {subject}, f/{2.8}; motion blur on.
+- Cycles on CPU, {64} samples, denoise on, full HD, Filmic/AgX view transform.
+- Output: PNG sequence with transparent background if it will be composited.
+First render 3 test frames (start, middle, end) at half resolution and show me. After
+approval, render the full shot and tell me the time it took.</pre>
+
+<h3>P5 · Composite Blender plates into the canvas film</h3>
+<pre>Composite the approved Blender plate "{shot name}" into "{film title}" from {t0} s to
+{t1} s. Load the PNG sequence frame-accurately inside render(t), match the canvas
+grade and grain, add a soft contact shadow where it meets canvas elements, and cross
+the seams with a {0.4} s dissolve or a cut on motion. Show stills at the entry, middle
+and exit, before and after the grade match.</pre>
+
+<h3>P6 · three.js scene with finishing effects</h3>
+<pre>Add a three.js scene to "{film title}" for {what it shows}, from {t0} to {t1} s. Use
+physical materials, the {HDRI} lighting map, and the postprocessing library for
+bloom (subtle, highlights only), depth of field and film grain matching the canvas.
+Drive every value from t (no real-time clock), so frames render exactly. Keep it light
+enough for software rendering. Tell me the seconds per frame. Show 4 stills.</pre>
+
+<h3>P7 · Path-traced poster or end card</h3>
+<pre>Make the poster for "{film title}" at {3840x2160 or 2160x3840}: {composition}.
+Render it in Blender Cycles at 512 samples (or three-gpu-pathtracer if the scene is
+already in three.js), then finish the type in the canvas so the text stays crisp.
+Give me 2 compositions to choose from at small size first.</pre>
+
+<h3>P8 · Hand-eased camera choreography (Theatre.js)</h3>
+<pre>For "{film title}", replace the formula camera with a Theatre.js timeline. Keys: {list,
+e.g. 0 s wide, 6 s push to tablet, 14 s orbit left 30 degrees, 20 s settle}. Ease
+each move so it starts gently, never stops dead and slightly overshoots only at
+{moment}. Save the timeline as a JSON file that the film reads with t, and show me a
+camera-path diagram plus 6 stills.</pre>
+
+<h3>P9 · Diagram sequence (Manim)</h3>
+<pre>Animate {diagram, e.g. "how a project moves from idea to award" as 5 steps} in Manim
+using our fonts and colours (ink on paper, gold only on the final step). {seconds} s,
+{fps} fps, transparent background, readable at phone size. Render a PNG sequence so
+it can be composited into "{film title}" at {t0} s. Show me 4 stills.</pre>
+
+<h3>P10 · Lottie sting</h3>
+<pre>Play the Lottie file {path} inside "{film title}" at {t0} s, scaled to {size}, frame-
+locked to t (no real-time playback). Recolour it to brand colours if it uses others.
+If I have not given you a file, design a 2 s logo sting as a Lottie-style vector
+animation in the canvas instead. Show 4 stills.</pre>
+
+<h3 class="pb">P11 · Narration voice</h3>
+<pre>Record the narration for "{film title}" from vo/lines.json.
+Voice: {Indian English (Indic Parler) / Hindi (Indic Parler) / British "George" (Kokoro)}.
+For Indic Parler use the description: "{e.g. Rohit speaks in a calm, warm, slightly deep
+voice at a moderate pace with very clear audio and no background noise}". Keep the
+same description for every line so the voice stays consistent. Generate 2 takes of
+line 1 first and send me both. After I pick, record all lines, trim silences, write
+dur.json, and re-time the film's text to the real line lengths.
+If Indic Parler is locked, tell me and use Kokoro George at speed 0.87.</pre>
+
+<h3>P12 · Music and foley</h3>
+<pre>Score "{film title}" with samatwam_audio.py: {instruments, e.g. santoor + tanpura + soft
+tabla} at {BPM}, key {key}. Hit the beats at {list of event times}, with silence at
+{times} for emphasis. Foley from the film's own materials ({e.g. paper, brass ticks}).
+Duck the music under narration and master to -14 LUFS, true peak -1 dBTP. Report the
+measured loudness and send a 20 s excerpt around the hero moment.</pre>
+
+<h3>P13 · Captions and speech check</h3>
+<pre>Make captions for "{film title}" from the narration (English{, plus Hindi}). Then run
+the Whisper speech check on the final mix: transcribe it, compare it with the script
+word by word, and measure caption timing. Report any mismatch over 0.15 s or any
+misheard word, fix it, and re-check. Hindi captions get flagged for a native-speaker
+check before release.</pre>
+
+<h3>P14 · Colour grade (OpenColorIO)</h3>
+<pre>Grade "{film title}" as one look across canvas frames and Blender plates. Look:
+{e.g. "warm paper, deep but not crushed ink, gold that glows without clipping"}. Build
+it as an OpenColorIO transform and export a .cube LUT, then apply it with ffmpeg at
+mux time. Show me 3 before/after stills (dark, mid, bright scenes) and confirm no
+brand colour moves by more than a just-noticeable amount (Delta E under 3) on flat areas.</pre>
+
+<h3>P15 · Upscale (Real-ESRGAN)</h3>
+<pre>Upscale {poster / these stills / the {t0}-{t1} s shot} 4x with Real-ESRGAN
+(realesr-animevideov3 for graphics, realesrgan-x4plus for photoreal plates). Then
+downscale to {target size} with a sharp filter. Compare 100% crops before and after
+and tell me if the text or edges got worse. Text should be re-drawn on top, never upscaled.</pre>
+
+<h3>P16 · Smoothing and motion blur</h3>
+<pre>For "{film title}": add real motion blur to fast moves ({times}). Use Blender's motion
+blur for plates, and in the canvas average {4} sub-frames per frame for the fast moves
+only. For slow-motion at {t0}-{t1} s, use ffmpeg motion interpolation and check
+for warping on edges and text. Show a still of the fastest moment before and after.</pre>
+
+<h3>P17 · Reel template (9:16)</h3>
+<pre>Make reel "{reel title}" ({15-30} s, 1080x1920, 30 fps) from {source film or brief}.
+Hook in the first 1.5 s (movement + one bold word), one idea, end on the mark plus
+{call to action}. Keep text inside the safe zone (top 250 px and bottom 420 px clear),
+captions burned in large, sound designed for first-second impact and watchable
+muted. Show me the first frame, the hook at 1.5 s and the end frame before rendering.</pre>
+
+<h3>P18 · Quality check (run before anything ships)</h3>
+<pre>Run the full quality check on "{film title}" against the 7 quality bars in the
+Master Control. Do: contact sheet (24 frames), blackdetect and freeze detection,
+loudness and true peak, readcheck on all text, Whisper speech check, caption sync,
+file and folder check against the delivery list. Report a table with pass/fail per
+bar and evidence. Fix every fail, then re-run only the failed checks.</pre>
+
+<h3>P19 · Deliver and log</h3>
+<pre>Deliver "{film title}": copy the deliverables to films/{folder}/ in my site repo,
+commit with a clear message and push to {branch}. Log the video, poster and contact
+sheet in Airtable (Assets, Series VIS, Status "{Checked}", Notes: what is still
+open). Send me the mp4 and poster, plus a 3-line plain summary: what it is,
+what passed, what still needs a human (logo, Hindi check, listening pass).</pre>
+
+<h3>P20 · Upgrade or revise an existing film</h3>
+<pre>Upgrade "{existing film, e.g. Film 03 Data Made Physical}". Keep the story, timing and
+narration. Raise these shots: {list, or "pick the 2-3 that gain most from real light
+and tell me why"}. Use P4/P6 for those shots, then P5, P14 and P18. Show me
+before/after stills for each upgraded shot before re-rendering the full film.
+Change nothing else without asking.</pre>
+
+<h2 class="pb">6. Upgrade plan for the current series</h2>
+<table>
+<tr><th style="width:24%">Film</th><th>Best upgrade</th><th style="width:22%">Prompts</th><th style="width:12%">Blender time</th></tr>
+<tr><td>Teaser</td><td>Real paper and ink-wash plate behind the mark rise; Indian English narration; graded poster</td><td>P20, P4, P11, P14, P7</td><td>~2 h</td></tr>
+<tr><td>01 Transit Map</td><td>Brighter postprocessing bloom on lines; Theatre.js camera</td><td>P20, P6, P8</td><td>none</td></tr>
+<tr><td>03 Data Made Physical</td><td>All three stacks as real brass, acrylic and stone on walnut. The biggest gain in the series.</td><td>P20, P4, P5, P14</td><td>~4 h</td></tr>
+<tr><td>04 Paper Lantern</td><td>Light through real paper (Blender subsurface/translucency) for the burning windows</td><td>P20, P4, P5</td><td>~3 h</td></tr>
+<tr><td>05 Gilded Illumination</td><td>Real gold leaf on the two tablets under a moving lamp</td><td>P20, P4, P5, P14</td><td>~2 h</td></tr>
+<tr><td>06 Pen Plotter</td><td>Real pen, ink and paper close-ups; motion blur on gantry travel</td><td>P20, P4, P16</td><td>~2 h</td></tr>
+<tr><td>07 Dark Keynote</td><td>Bloom and depth of field on the card layers; 4K poster</td><td>P20, P6, P7, P15</td><td>poster only</td></tr>
+<tr><td>08 Shadow Puppet</td><td>Real lamp-through-hide translucency for the puppets</td><td>P20, P4, P5</td><td>~3 h</td></tr>
+<tr><td>02, 09, 10 (not built)</td><td>Build as premium hybrids; 09 suits Manim for the expression trees</td><td>Premium chain; 09 adds P9</td><td>~2 h each</td></tr>
+<tr><td>Phonk Reels 01–10</td><td>Reel template; neon tubes as real emissive glass in Blender for Reel 01</td><td>P17 (+P4 for Reel 01)</td><td>~1 h</td></tr>
+</table>
+
+<h2>7. Limits to plan around</h2>
+<ul>
+<li><b>No GPU.</b> Blender frames take about 34 s each, so keep photoreal shots short and render overnight. A GPU computer of your own (any recent NVIDIA card) would cut this by 10–30×. The same scripts run unchanged there.</li>
+<li><b>The tools live in the cloud machine.</b> A cloud machine is rebuilt between sessions, so a setup script in the <span class="mono">samatwam-films</span> environment reinstalls the tools automatically. The first session after a rebuild starts a few minutes later.</li>
+<li><b>Indian voice</b> needs your Hugging Face step (section 2). The Microsoft Prabhat voice cannot connect from the cloud.</li>
+<li><b>Still needed from you:</b> the real logo file, a native Hindi check of the captions, and one listening pass on each film's sound.</li>
+<li><b>Licences.</b> Poly Haven and ambientCG assets are CC0 (free for any use). Blender output belongs to you. Credit open tools in CREDITS.</li>
+</ul>
+
+</body></html>
