@@ -1,0 +1,152 @@
+<title>Samatwam Stack Review</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a single review column; each sample is a row of film (left) and scorecard (right), stacking on phones. */
+:root {
+  --bg: #FBFBFA; --surface: #FFFFFF; --ink: #0B0F17; --muted: #5E6470; --line: #E3E4E6; --accent: #2E6FD6; --accent-ink: #FFFFFF; --keep: #1F7A3A; --tweak: #A86A12; --drop: #B3362B; --chip: #F1F2F4;
+  --display: "Geist", "Inter", system-ui, sans-serif; --body: "Geist", system-ui, sans-serif; --mono: "Geist Mono", ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #0B0F17; --surface: #121722; --ink: #EEF1F6; --muted: #98A0AE; --line: #262D3A; --accent: #6E9BEA; --accent-ink: #0B0F17; --keep: #5DBB7A; --tweak: #E0A64A; --drop: #EC7A6F; --chip: #1A2130; color-scheme: dark } }
+:root[data-theme="dark"] { --bg: #0B0F17; --surface: #121722; --ink: #EEF1F6; --muted: #98A0AE; --line: #262D3A; --accent: #6E9BEA; --accent-ink: #0B0F17; --keep: #5DBB7A; --tweak: #E0A64A; --drop: #EC7A6F; --chip: #1A2130; color-scheme: dark }
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1240px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 40px 80px; display: grid; gap: 40px; }
+header { display: grid; gap: 12px; border-bottom: 1px solid var(--ink); padding-bottom: 24px; }
+.eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: .18em; text-transform: uppercase; color: var(--muted); }
+h1 { font-family: var(--display); font-weight: 500; font-size: clamp(32px, 5vw, 52px); letter-spacing: -.03em; line-height: 1.05; margin: 0; text-wrap: balance; }
+.lede { max-width: 66ch; color: var(--muted); margin: 0; }
+.stack { display: flex; flex-wrap: wrap; gap: 8px; }
+.tag { font-family: var(--mono); font-size: 12px; padding: 4px 10px; border: 1px solid var(--line); border-radius: 999px; color: var(--ink); background: var(--surface); }
+.status { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.sample { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr); gap: 28px; padding-bottom: 40px; border-bottom: 1px solid var(--line); }
+@media (max-width: 860px) { .sample { grid-template-columns: 1fr; } }
+.film { display: grid; gap: 12px; min-width: 0; }
+video { width: 100%; max-width: 100%; aspect-ratio: 16 / 9; background: #0B0F17; display: block; border-radius: 4px; }
+.film h2 { font-family: var(--display); font-weight: 500; font-size: 26px; letter-spacing: -.02em; margin: 0; display: flex; gap: 12px; align-items: baseline; }
+.film h2 .n { font-family: var(--mono); font-size: 13px; color: var(--accent); letter-spacing: .1em; }
+.film p { margin: 0; color: var(--muted); max-width: 62ch; }
+.card { display: grid; gap: 14px; align-content: start; min-width: 0; }
+.row { display: grid; grid-template-columns: 92px 1fr; align-items: center; gap: 12px; }
+.row label, .label { font-family: var(--mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.scale { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.scale button, .verdict button { font: inherit; font-family: var(--mono); font-size: 13px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 6px; padding: 7px 0; cursor: pointer; font-variant-numeric: tabular-nums; }
+.scale button:hover, .verdict button:hover { border-color: var(--ink); }
+.scale button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.verdict { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.verdict button { padding: 9px 0; }
+.verdict button[data-v="keep"][aria-pressed="true"] { background: var(--keep); border-color: var(--keep); color: var(--accent-ink); }
+.verdict button[data-v="tweak"][aria-pressed="true"] { background: var(--tweak); border-color: var(--tweak); color: var(--accent-ink); }
+.verdict button[data-v="drop"][aria-pressed="true"] { background: var(--drop); border-color: var(--drop); color: var(--accent-ink); }
+textarea { font: inherit; width: 100%; box-sizing: border-box; min-height: 92px; resize: vertical; padding: 10px 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink); }
+textarea:focus, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.saved { font-family: var(--mono); font-size: 12px; color: var(--muted); min-height: 1.2em; }
+.final { display: grid; gap: 16px; padding: 24px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; }
+.final h2 { font-family: var(--display); font-weight: 500; font-size: 26px; letter-spacing: -.02em; margin: 0; }
+.picks { display: flex; flex-wrap: wrap; gap: 8px; }
+.picks button { font: inherit; font-size: 14px; padding: 8px 14px; border-radius: 999px; border: 1px solid var(--line); background: var(--chip); color: var(--ink); cursor: pointer; }
+.picks button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.notice { font-size: 13px; color: var(--muted); }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Samatwam · stack samples · 6 × 5 seconds</div>
+    <h1>Pick the look for the next film</h1>
+    <p class="lede">Six short samples built with the new stack: real Mixkit footage, Paper Shaders textures, and GSAP type and shape animation. Score each one on the aspects that matter to you, give it a verdict, and add notes. Everything saves as you go.</p>
+    <div class="stack"><span class="tag">Paper Shaders</span><span class="tag">GSAP · SplitText · MorphSVG · DrawSVG</span><span class="tag">Mixkit footage</span><span class="tag">Geist type</span></div>
+    <div class="status" id="status">Connecting to saved reviews…</div>
+  </header>
+  <main id="list" style="display:grid;gap:40px"></main>
+  <section class="final" aria-labelledby="final-h">
+    <h2 id="final-h">Your direction</h2>
+    <div class="label">Which samples should shape the full film? Pick any</div>
+    <div class="picks" id="picks"></div>
+    <label class="label" for="final-notes">Anything else for the full film</label>
+    <textarea id="final-notes" placeholder="Pacing, length, which classes to film, colours to push, what to avoid…"></textarea>
+    <div class="saved" id="final-saved"></div>
+  </section>
+  <p class="notice">Footage: Mixkit, free licence for commercial use. Samples are silent and loop for review.</p>
+</div>
+
+<script>
+const SAMPLES = [
+  { id: 'grain', n: '01', name: 'Grain Light', file: 'mp4/01-grain.mp4', what: 'A slow grain gradient in deep brand blues behind letter-by-letter type: "Making is becoming easy. Proof is not." No footage; texture and typography carry it.' },
+  { id: 'real', n: '02', name: 'Real + Type', file: 'mp4/02-real.mp4', what: 'Real industrial robot footage, graded into ink and blue with film grain. The class title rises line by line, a rule draws on, and a trial counter ticks up.' },
+  { id: 'glass', n: '03', name: 'Fluted Glass', file: 'mp4/03-glass.mp4', what: 'A maker at a night workbench seen through ribbed glass that slowly clears, then "Learn by making something of your own." word by word.' },
+  { id: 'mark', n: '04', name: 'Mark Draw-on', file: 'mp4/04-mark.mp4', what: 'Your traced Samatwam mark drawn line by line on a paper texture, then filled, with the wordmark and line "Never whole. Never incomplete. Always building."' },
+  { id: 'morph', n: '05', name: 'Morph', file: 'mp4/05-morph.mp4', what: 'One shape morphing through the six class symbols over a moving mesh gradient while the class names roll past.' },
+  { id: 'mosaic', n: '06', name: 'Mosaic', file: 'mp4/06-mosaic.mp4', what: 'Six real clips in an editorial grid, one per class, wiped in on a stagger, then a band with "Six classes. One discipline of proof."' },
+];
+const ASPECTS = [['type', 'Type'], ['texture', 'Texture'], ['colour', 'Colour'], ['motion', 'Motion'], ['footage', 'Footage'], ['overall', 'Overall']];
+const state = {}; SAMPLES.forEach(s => state[s.id] = { verdict: '', notes: '', ...Object.fromEntries(ASPECTS.map(([k]) => [k, 0])) });
+const final = { picks: [], notes: '' };
+const list = document.getElementById('list');
+
+function render() {
+  list.innerHTML = '';
+  for (const s of SAMPLES) {
+    const sec = document.createElement('section'); sec.className = 'sample'; sec.setAttribute('aria-labelledby', 'h-' + s.id);
+    sec.innerHTML = `<div class="film"><video src="${s.file}" muted loop playsinline autoplay preload="metadata" controls></video>
+        <h2 id="h-${s.id}"><span class="n">${s.n}</span>${s.name}</h2><p>${s.what}</p></div>
+      <div class="card">${ASPECTS.map(([k, label]) => `<div class="row"><label id="l-${s.id}-${k}">${label}</label><div class="scale" role="group" aria-labelledby="l-${s.id}-${k}">${[1, 2, 3, 4, 5].map(v => `<button type="button" id="b-${s.id}-${k}-${v}" data-s="${s.id}" data-k="${k}" data-v="${v}" aria-pressed="false">${v}</button>`).join('')}</div></div>`).join('')}
+        <div class="row"><span class="label">Verdict</span><div class="verdict" role="group" aria-label="Verdict for ${s.name}">${[['keep', 'Keep'], ['tweak', 'Tweak'], ['drop', 'Drop']].map(([v, l]) => `<button type="button" id="v-${s.id}-${v}" data-s="${s.id}" data-verdict="${v}" data-v="${v}" aria-pressed="false">${l}</button>`).join('')}</div></div>
+        <label class="label" for="notes-${s.id}">Notes on ${s.name}</label>
+        <textarea id="notes-${s.id}" data-s="${s.id}" placeholder="What works, what to change…"></textarea>
+        <div class="saved" id="saved-${s.id}"></div></div>`;
+    list.appendChild(sec);
+  }
+  const picks = document.getElementById('picks'); picks.innerHTML = SAMPLES.map(s => `<button type="button" id="p-${s.id}" data-pick="${s.id}" aria-pressed="false">${s.n} · ${s.name}</button>`).join('');
+  paint();
+}
+function paint() {
+  for (const s of SAMPLES) {
+    const st = state[s.id];
+    for (const [k] of ASPECTS) for (let v = 1; v <= 5; v++) document.getElementById(`b-${s.id}-${k}-${v}`).setAttribute('aria-pressed', String(st[k] === v));
+    for (const v of ['keep', 'tweak', 'drop']) document.getElementById(`v-${s.id}-${v}`).setAttribute('aria-pressed', String(st.verdict === v));
+    const ta = document.getElementById('notes-' + s.id); if (document.activeElement !== ta) ta.value = st.notes || '';
+  }
+  for (const s of SAMPLES) document.getElementById('p-' + s.id).setAttribute('aria-pressed', String(final.picks.includes(s.id)));
+  const fn = document.getElementById('final-notes'); if (document.activeElement !== fn) fn.value = final.notes || '';
+}
+
+// ---------------- saving (the page's shared store; Claude reads it back)
+let db = null; const timers = {}, busy = {};
+const statusEl = document.getElementById('status');
+function savedMsg(id, text) { const el = document.getElementById(id === 'direction' ? 'final-saved' : 'saved-' + id); if (el) el.textContent = text; }
+function queue(id) {
+  clearTimeout(timers[id]); savedMsg(id, db ? 'Saving…' : 'Not saved: the review store is unavailable in this view');
+  if (!db) return;
+  timers[id] = setTimeout(async () => {
+    if (busy[id]) return queue(id);
+    busy[id] = true;
+    try { await db.doc('reviews/' + id).set(id === 'direction' ? { ...final, updatedAt: Date.now() } : { ...state[id], sample: id, updatedAt: Date.now() }); savedMsg(id, 'Saved'); }
+    catch (e) { savedMsg(id, 'Could not save. Check your connection and change any answer to try again.'); }
+    busy[id] = false;
+  }, 600);
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.k) { const st = state[b.dataset.s], v = Number(b.dataset.v); st[b.dataset.k] = st[b.dataset.k] === v ? 0 : v; paint(); queue(b.dataset.s); }
+  else if (b.dataset.verdict) { const st = state[b.dataset.s]; st.verdict = st.verdict === b.dataset.verdict ? '' : b.dataset.verdict; paint(); queue(b.dataset.s); }
+  else if (b.dataset.pick) { const p = b.dataset.pick; final.picks = final.picks.includes(p) ? final.picks.filter(x => x !== p) : [...final.picks, p]; paint(); queue('direction'); }
+});
+document.addEventListener('input', e => {
+  const t = e.target; if (t.tagName !== 'TEXTAREA') return;
+  if (t.id === 'final-notes') { final.notes = t.value; queue('direction'); } else { state[t.dataset.s].notes = t.value; queue(t.dataset.s); }
+});
+
+render();
+(async () => {
+  const timeout = setTimeout(() => { if (!db) statusEl.textContent = 'Reviews are not saving in this view. Open the page signed in to claude.ai to save them.'; }, 10000);
+  db = await (window.claude?.use ? window.claude.use('db') : Promise.resolve(null));
+  clearTimeout(timeout);
+  if (!db) { statusEl.textContent = 'Reviews are not saving in this view. Open the page signed in to claude.ai to save them.'; return; }
+  statusEl.textContent = 'Signed in · your answers save automatically';
+  db.collection('reviews').onSnapshot(snap => {
+    for (const d of snap.docs) { const v = d.data(); if (d.id === 'direction') { final.picks = v.picks || []; if (!busy.direction) final.notes = v.notes || ''; } else if (state[d.id] && !busy[d.id]) Object.assign(state[d.id], v); }
+    paint();
+  }, () => { statusEl.textContent = 'Saved reviews could not be loaded. Your new answers will still save.'; });
+})();
+</script>
