@@ -10,8 +10,8 @@ A = sys.argv[sys.argv.index('--') + 1:]
 SHOT, PASS, OUTDIR = A[0], A[1], A[2]
 opt = {A[i]: A[i + 1] for i in range(3, len(A) - 1, 2)}
 FPS = int(opt.get('--fps', 8))
-VEC = '/home/user/2025514153aashirwad-glitch.github.io/brand/logo/vector'
-HDRI = '/home/user/tools/assets/hdri/brown_photostudio_02.hdr'
+VEC = os.environ.get('SAMATVA_VEC', '/home/user/2025514153aashirwad-glitch.github.io/brand/logo/vector')
+HDRI = os.environ.get('SAMATVA_HDRI', '/home/user/tools/assets/hdri/brown_photostudio_02.hdr')
 LEN = {'reform': 14, 'build': 14, 'gen': 13, 'loop': 12, 'finale': 12}[SHOT]
 NF = LEN * FPS
 
@@ -24,6 +24,11 @@ rw, rh = map(int, opt.get('--res', '1280x720').split('x')); sc.render.resolution
 sc.view_settings.view_transform = 'AgX'; sc.view_settings.look = 'AgX - Medium High Contrast'
 sc.render.fps = FPS; sc.frame_start, sc.frame_end = 1, NF
 sc.render.image_settings.file_format = 'PNG'; sc.render.image_settings.color_mode = 'RGB'
+DEV = os.environ.get('SAMATVA_DEVICE', 'CPU')   # CPU here; OPTIX or CUDA on a graphics card (e.g. Kaggle)
+if DEV != 'CPU':
+    pr = bpy.context.preferences.addons['cycles'].preferences; pr.compute_device_type = DEV; pr.get_devices()
+    for d in pr.devices: d.use = (d.type == DEV)
+    sc.cycles.device = 'GPU'; print('GPU devices:', [d.name for d in pr.devices if d.use])
 sc.cycles.max_bounces = 4; sc.cycles.glossy_bounces = 3; sc.cycles.transmission_bounces = 1; sc.cycles.diffuse_bounces = 2
 
 def ease(x): x = max(0, min(1, x)); return x * x * (3 - 2 * x)
