@@ -1,0 +1,45 @@
+<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;background:#000}</style>
+<script type="importmap">{"imports":{"three":"./nm/three/build/three.module.js","three/addons/":"./nm/three/examples/jsm/"}}</script></head><body>
+<script type="module">
+import * as THREE from 'three';
+import { SVGLoader } from 'three/addons/loaders/SVGLoader.js';
+import { HDRLoader } from 'three/addons/loaders/HDRLoader.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { BokehPass } from 'three/addons/postprocessing/BokehPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+const W = 1920, H = 1080;
+const r = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true }); r.setSize(W, H); r.toneMapping = THREE.AgXToneMapping; r.toneMappingExposure = 1.0;
+r.shadowMap.enabled = true; r.shadowMap.type = THREE.VSMShadowMap; document.body.appendChild(r.domElement);
+const sc = new THREE.Scene(); sc.background = new THREE.Color(0x050505);
+const hdr = await new HDRLoader().loadAsync('studio.hdr'); hdr.mapping = THREE.EquirectangularReflectionMapping;
+const pm = new THREE.PMREMGenerator(r); sc.environment = pm.fromScene(new RoomEnvironment(), .03).texture; sc.environmentIntensity = .3;
+sc.environmentRotation.y = 2.2;
+const silver = new THREE.MeshPhysicalMaterial({ color: 0xb9bbbe, metalness: 1, roughness: .34 });
+const relief = new THREE.MeshPhysicalMaterial({ color: 0xe6e8eb, metalness: 1, roughness: .16 });
+const enamel = new THREE.MeshPhysicalMaterial({ color: 0x06248a, metalness: 0, roughness: .08, clearcoat: 1, clearcoatRoughness: .03 });
+const disc = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, .12, 256), silver); disc.position.y = -.06; disc.castShadow = disc.receiveShadow = true; sc.add(disc);
+const rim = new THREE.Mesh(new THREE.TorusGeometry(.965, .022, 24, 256), relief); rim.rotation.x = Math.PI / 2; sc.add(rim);
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(40, 40), new THREE.MeshStandardMaterial({ color: 0x020202, roughness: .95 })); ground.rotation.x = -Math.PI / 2; ground.position.y = -.121; ground.receiveShadow = true; sc.add(ground);
+// the traced mark, extruded
+const mark = new THREE.Group(); const box = new THREE.Box3();
+for (const part of ['crescent', 'infinity', 'emblem', 'triangles']) {
+  const d = await new SVGLoader().loadAsync(`vec/wheel-${part}.svg`);
+  for (const p of d.paths) for (const s of p.toShapes(true)) {
+    const g = new THREE.ExtrudeGeometry(s, { depth: part === 'triangles' ? 20 : 70, bevelEnabled: true, bevelThickness: 30, bevelSize: 16, bevelSegments: 5, curveSegments: 24 });
+    const m = new THREE.Mesh(g, part === 'triangles' ? enamel : relief); m.castShadow = true; mark.add(m);
+  }
+}
+mark.updateMatrixWorld(true); box.setFromObject(mark); const sz = box.getSize(new THREE.Vector3()), c = box.getCenter(new THREE.Vector3());
+const k = 1.36 / sz.y; const holder = new THREE.Group(); mark.position.set(-c.x, -c.y, 0); holder.add(mark); holder.scale.set(k, k, k * .16);
+holder.rotation.set(-Math.PI / 2, 0, Math.PI); sc.add(holder);
+const key = new THREE.DirectionalLight(0xebf2ff, 1.6); key.position.set(-3.2, 1.15, -2.4); key.castShadow = true; key.shadow.mapSize.set(2048, 2048); sc.add(key);
+const spot = new THREE.SpotLight(0xebf2ff, 140, 0, THREE.MathUtils.degToRad(15), .7); spot.position.set(.3, 4.2, .6); sc.add(spot);
+const cam = new THREE.PerspectiveCamera(30, W / H, .1, 100); cam.position.set(.55, 2.35, 3.1); cam.lookAt(0, 0, -.05); cam.fov = 26; cam.updateProjectionMatrix();
+const comp = new EffectComposer(r); comp.addPass(new RenderPass(sc, cam)); const ao = new GTAOPass(sc, cam, W, H); ao.updateGtaoMaterial({ radius: .08, distanceExponent: 1.5, thickness: 1, scale: 1.2 }); comp.addPass(ao);
+comp.addPass(new BokehPass(sc, cam, { focus: cam.position.distanceTo(new THREE.Vector3(0, 0, -.05)), aperture: .0016, maxblur: .006 })); comp.addPass(new OutputPass());
+window.renderFrame = () => { const t0 = performance.now(); comp.render(); r.getContext().finish(); return performance.now() - t0; };
+window.READY = true;
+</script></body></html>

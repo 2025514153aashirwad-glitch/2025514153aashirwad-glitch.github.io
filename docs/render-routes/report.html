@@ -1,0 +1,119 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Render Routes Compared</title>
+<style>
+@font-face{font-family:Inter;src:url(file:///home/user/lemomo-ai/lemo-opuscar/films/samatwam-teaser/fonts/Inter.ttf) format('truetype');font-weight:100 900}
+@font-face{font-family:Geist;src:url(file:///home/user/tools/web/node_modules/geist/dist/fonts/geist-sans/Geist-Medium.woff2) format('woff2');font-weight:500}
+@font-face{font-family:GeistMono;src:url(file:///home/user/tools/web/node_modules/geist/dist/fonts/geist-mono/GeistMono-Regular.woff2) format('woff2')}
+@page{size:A4;margin:16mm 14mm 17mm 14mm}
+body{font-family:Inter,sans-serif;font-size:9.6pt;line-height:1.47;color:#131313;margin:0}
+h1{font-family:Geist;font-weight:500;font-size:30pt;line-height:1.05;margin:0 0 8pt;letter-spacing:-.02em}
+h2{font-family:Geist;font-weight:500;font-size:15pt;margin:14pt 0 6pt;padding-top:6pt;border-top:1px solid #131313;page-break-after:avoid;letter-spacing:-.01em}
+h3{font-family:Geist;font-weight:500;font-size:11.5pt;margin:10pt 0 3pt;page-break-after:avoid}
+p{margin:0 0 6pt}
+.kicker{font-family:GeistMono;font-size:7.6pt;letter-spacing:2px;color:#5C5C5C;text-transform:uppercase}
+.cover{border:1.5px solid #131313;padding:18pt 20pt;margin-bottom:12pt}
+.lede{font-size:11.5pt;color:#333}
+table{width:100%;border-collapse:collapse;margin:5pt 0 9pt;font-size:8.2pt}
+tr{page-break-inside:avoid}
+th{background:#ececea;text-align:left;font-weight:700;padding:4pt 5pt;border:1px solid #c9c9c6;vertical-align:bottom}
+td{padding:4pt 5pt;border:1px solid #d9d9d6;vertical-align:top}
+.mono{font-family:GeistMono;font-size:7.8pt}
+.box{border-left:3px solid #131313;background:#f4f4f2;padding:6pt 10pt;margin:7pt 0;page-break-inside:avoid}
+.warn{border-left:3px solid #B3261E;background:#fbf1f0;padding:6pt 10pt;margin:7pt 0;page-break-inside:avoid}
+.ok{border-left:3px solid #1F7A3A;background:#eef6f0;padding:6pt 10pt;margin:7pt 0;page-break-inside:avoid}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:8pt;margin:6pt 0 10pt}
+.grid figure{margin:0;page-break-inside:avoid}
+.grid img{width:100%;display:block;border:1px solid #d9d9d6}
+figcaption{font-size:8pt;color:#333;margin-top:3pt;line-height:1.35}
+figcaption b{font-family:Geist;font-weight:500;font-size:9pt;color:#131313}
+.dots{font-family:GeistMono;letter-spacing:1px;white-space:nowrap}
+.small{font-size:8pt;color:#5C5C5C}
+.pb{page-break-before:always}
+.tag{display:inline-block;font-family:GeistMono;font-size:7pt;border:1px solid #999;border-radius:3px;padding:0 4pt;white-space:nowrap}
+.m{border-color:#1F7A3A;color:#1F7A3A}.e{border-color:#8A6D1A;color:#8A6D1A}
+ul,ol{margin:2pt 0 7pt 15pt;padding:0}li{margin-bottom:2pt}
+</style></head><body>
+
+<div class="cover">
+  <div class="kicker">Production report · Samatwam Org · 17 November 2026</div>
+  <h1>Render Routes,<br>Compared</h1>
+  <p class="lede">The same Samatwam medallion rendered four ways. Each tool is scored on time to produce against quality of the finished frame, with six production routes to choose from, from minutes to hours.</p>
+  <p class="small">Times are <span class="tag m">measured</span> on the cloud machine that made the SAMATVA film (4 CPU cores, no graphics card) or <span class="tag e">estimated</span> for a typical laptop graphics card (an NVIDIA RTX 3060-class GPU). Quality is scored 1 to 5 from the actual frames shown here.</p>
+</div>
+
+<h2>1. The short answer</h2>
+<div class="ok"><b>Blender is not the heavy part. The missing graphics card is.</b> Cycles, the photoreal renderer, spends about 15 seconds per frame on this machine's processor. The same scripts on a graphics card take about 1 to 2 seconds. That is the difference between 2 hours and 10 minutes for the photoreal part of a one-minute film.</div>
+<p>The fastest route to the same quality is therefore to keep the Blender scripts and send them to a free graphics card. The fastest route to <i>good</i> quality is three.js or Blender's real-time engine (EEVEE) on any laptop with a graphics card. For everyday content, a hybrid works best: three or four photoreal stills per film, moved in 2.5D. All six routes are in section 4.</p>
+
+<h2>2. One shot, four ways</h2>
+<p>The Reform medallion, built from the same traced Samatwam mark each time. Same object, same idea; only the renderer changes.</p>
+<div class="grid">
+  <figure><img src="cycles.jpg"><figcaption><b>A · Blender Cycles, full quality</b><br>Physically traced light: real reflections, contact shadows, soft depth of field. Full HD, 64 samples.<br><span class="dots">Quality ●●●●●</span> · <span class="tag m">34 s/frame</span> here · <span class="tag e">~2 s</span> on a GPU</figcaption></figure>
+  <figure><img src="cycles-fast.jpg"><figcaption><b>A′ · Cycles, fast film settings (used now)</b><br>720p, 10 samples, denoised, then smoothed and upscaled to full HD. Nearly identical on screen.<br><span class="dots">Quality ●●●●○+</span> · <span class="tag m">15 s/frame</span> here · <span class="tag e">~0.7 s</span> on a GPU</figcaption></figure>
+  <figure><img src="eevee.jpg"><figcaption><b>B · Blender EEVEE (real-time engine)</b><br>The same scene file, rasterised instead of traced. Slightly flatter relief, same materials.<br><span class="dots">Quality ●●●●○</span> · <span class="tag m">152 s/frame</span> here (software graphics) · <span class="tag e">~0.5–1 s</span> on a GPU</figcaption></figure>
+  <figure><img src="three.jpg"><figcaption><b>C · three.js in the browser (PBR + ambient occlusion + depth of field)</b><br>Clean and brand-correct, but evenly lit and more “CG”. Lives inside the same page as the 2D motion.<br><span class="dots">Quality ●●●○○</span> · <span class="tag m">9.7 s/frame</span> here · <span class="tag e">real time</span> on a GPU</figcaption></figure>
+</div>
+<div class="warn"><b>Reading these numbers.</b> This machine has no graphics card. Tools built for a graphics card (EEVEE and three.js) fall back to slow software emulation here, so they come out <i>slower</i> than Cycles. On a laptop with a graphics card the ranking flips: three.js and EEVEE become near-instant.</div>
+
+<h2>3. Every tool: time to produce and quality</h2>
+<p>“Per 60 s” is the render time for one minute of finished 24 fps, full-HD film. “Set-up” is the effort to make a new piece with the tool, once the brief is clear.</p>
+<table>
+<tr><th style="width:17%">Tool</th><th style="width:19%">What it makes</th><th>Per frame<br><span class="small">here / on a GPU</span></th><th>Per 60 s<br><span class="small">here / on a GPU</span></th><th>Set-up</th><th>Realism</th><th>Motion & type</th><th style="width:19%">Best for</th></tr>
+<tr><td><b>Film library</b> (canvas 2D)</td><td>Code-drawn motion design, typography, maps, data</td><td><span class="tag m">0.06 s</span> / same</td><td><span class="tag m">1.5 min</span></td><td>Low</td><td>●●○○○</td><td>●●●●●</td><td>Explainers, titles, reels, the type layer of every film</td></tr>
+<tr><td><b>Motion Canvas / Revideo</b></td><td>2D motion with a live timeline editor</td><td><span class="tag e">~0.05 s</span></td><td><span class="tag e">~2 min</span></td><td>Low</td><td>●●○○○</td><td>●●●●●</td><td>Fast 2D iterations you can scrub and tweak</td></tr>
+<tr><td><b>Manim</b></td><td>Exact diagrams and step-by-step logic</td><td><span class="tag m">~0.1 s</span> (720p)</td><td><span class="tag e">~3 min</span></td><td>Low</td><td>●○○○○</td><td>●●●●○</td><td>Processes, flows, equations (Film 09)</td></tr>
+<tr><td><b>Lottie</b></td><td>Plays designer-made vector animation</td><td><span class="tag e">~0.02 s</span></td><td><span class="tag e">&lt;1 min</span></td><td>Needs a .json from a designer</td><td>●○○○○</td><td>●●●●○</td><td>Logo stings, icons, UI moments</td></tr>
+<tr><td><b>Theatre.js</b></td><td>Hand-eased camera and object timelines</td><td>—</td><td>—</td><td>Medium</td><td>—</td><td>●●●●●</td><td>Making any 3D move feel hand-made</td></tr>
+<tr><td><b>three.js + postprocessing</b></td><td>Real-time 3D: PBR materials, bloom, DOF, AO</td><td><span class="tag m">9.7 s</span> / <span class="tag e">0.02 s</span></td><td><span class="tag m">3.9 h</span> / <span class="tag e">~3 min</span></td><td>Medium</td><td>●●●○○</td><td>●●●●○</td><td>Light 3D inside motion pieces, on a GPU machine</td></tr>
+<tr><td><b>three-gpu-pathtracer</b></td><td>Path-traced stills from three.js scenes</td><td><span class="tag e">minutes</span> / <span class="tag e">~10 s</span></td><td>stills only</td><td>Medium</td><td>●●●●○</td><td>—</td><td>Posters from an existing three.js scene</td></tr>
+<tr><td><b>Blender EEVEE</b></td><td>Real-time render of a full Blender scene</td><td><span class="tag m">152 s</span> / <span class="tag e">~0.7 s</span></td><td><span class="tag m">61 h</span> / <span class="tag e">~17 min</span></td><td>Medium (same scripts)</td><td>●●●●○</td><td>●●●○○</td><td>Fast near-photoreal, but only on a GPU</td></tr>
+<tr><td><b>Blender Cycles, film settings</b></td><td>Path-traced animation (what SAMATVA uses)</td><td><span class="tag m">15 s</span> / <span class="tag e">~0.7 s</span></td><td><span class="tag m">2 h</span>* / <span class="tag e">~6 min</span></td><td>Medium (scripts exist)</td><td>●●●●●</td><td>●●●○○</td><td>Hero shots: metal, glass, light</td></tr>
+<tr><td><b>Blender Cycles, full quality</b></td><td>Full-HD path tracing, 64 samples</td><td><span class="tag m">34 s</span> / <span class="tag e">~2 s</span></td><td><span class="tag m">13.6 h</span> / <span class="tag e">~48 min</span></td><td>Medium</td><td>●●●●●</td><td>●●●○○</td><td>Posters, key stills, slow-motion closeups</td></tr>
+<tr><td><b>Real-ESRGAN</b></td><td>4× upscaling</td><td><span class="tag m">10 s</span> (small frame) / <span class="tag e">~0.3 s</span></td><td>stills, short shots</td><td>Low</td><td>+ sharpness</td><td>—</td><td>4K posters from HD renders</td></tr>
+<tr><td><b>ffmpeg frame smoothing</b></td><td>Motion-interpolated in-between frames</td><td><span class="tag e">~0.3 s</span></td><td><span class="tag e">~5 min</span></td><td>None</td><td>keeps source</td><td>●●●○○</td><td>Rendering at 8 fps, playing at 24 (used now)</td></tr>
+<tr><td><b>OpenColorIO</b></td><td>One colour grade across every source</td><td>~0.01 s</td><td>&lt;1 min</td><td>Low</td><td>+ cohesion</td><td>—</td><td>Making 2D, 3D and stills match</td></tr>
+<tr><td><b>Gaussian splats</b></td><td>Photoreal capture of real places from phone video</td><td><span class="tag e">real time</span> once trained</td><td>training needs a GPU</td><td>High</td><td>●●●●●</td><td>●●○○○</td><td>Real campus, workshop or product, scanned</td></tr>
+<tr><td><b>ComfyUI / Wan video</b></td><td>Generated footage</td><td>not possible here</td><td><span class="tag e">~10–30 min/clip</span> on a big GPU</td><td>High</td><td>●●●○○ varies</td><td>●●○○○</td><td>Mood plates only; hard to keep on-brand</td></tr>
+</table>
+<p class="small">* The 2 h figure for Cycles assumes rendering at 8 fps and smoothing to 24 fps, as SAMATVA does. At native 24 fps it would be 6 h. GPU estimates assume an RTX 3060-class laptop card.</p>
+
+<h2 class="pb">4. Six production routes</h2>
+<table>
+<tr><th style="width:21%">Route</th><th>How</th><th style="width:15%">Time for a 90 s film</th><th style="width:10%">Quality</th><th style="width:22%">Use it for</th></tr>
+<tr><td><b>1 · Pure motion design</b></td><td>Film library or Motion Canvas for motion and type; Manim for diagrams; Lottie for stings. No 3D.</td><td><span class="tag m">~5 min</span> render, here</td><td>●●●○○</td><td>Weekly reels, explainers, announcements</td></tr>
+<tr><td><b>2 · Hybrid stills</b></td><td>3 to 5 Cycles stills per film (full quality), moved in 2.5D: slow push, parallax and light sweeps in the canvas. Heat-vision passes as stills too.</td><td><span class="tag m">~10–25 min</span> render, here</td><td>●●●●○</td><td><b>Best value on this machine.</b> Campaign films with a premium feel</td></tr>
+<tr><td><b>3 · Light 3D on a laptop</b></td><td>three.js + postprocessing + Theatre.js camera, rendered on any laptop with a graphics card.</td><td><span class="tag e">~5 min</span> on a GPU</td><td>●●●○○</td><td>Interactive-looking 3D, product spins, quick iterations</td></tr>
+<tr><td><b>4 · EEVEE on a laptop</b></td><td>The existing Blender scripts, switched to EEVEE, rendered on a laptop graphics card.</td><td><span class="tag e">~25 min</span> on a GPU</td><td>●●●●○</td><td>Near-photoreal films on a deadline</td></tr>
+<tr><td><b>5 · Cinematic on this machine</b></td><td>What SAMATVA does now: Cycles at film settings, 8 fps smoothed to 24, composited in the film library.</td><td><span class="tag m">~2.5–3 h</span> render, here</td><td>●●●●●</td><td>Hero brand films, when there's time</td></tr>
+<tr><td><b>6 · Cinematic on a free GPU</b></td><td>The same Blender scripts, rendered on a free GPU: Kaggle notebooks (about 30 free GPU hours a week) or the SheepIt community render farm. Plates come back as PNGs; finishing stays here.</td><td><span class="tag e">~10–20 min</span> render</td><td>●●●●●</td><td><b>Best quality per hour.</b> Every hero film from now on</td></tr>
+</table>
+<div class="box"><b>Recommendation.</b>
+<ul>
+<li><b>Hero films (like SAMATVA):</b> route 6, the same quality at a fraction of the time.</li>
+<li><b>Monthly campaign pieces:</b> route 2.</li>
+<li><b>Weekly content and reels:</b> route 1.</li>
+</ul>
+Keep Blender as the source of truth for the look: its scripts already exist, and every route above can reuse the traced marks, materials and lighting.</div>
+<div class="warn"><b>Two cautions about free GPUs.</b>
+<ol>
+<li>A free Kaggle or Colab account needs a phone number. Sessions time out after about 9–12 hours.</li>
+<li>SheepIt renders on volunteers' computers, so your scene file (with the logo) is shared with strangers. Use it only for material that is already public.</li>
+</ol></div>
+
+<h2>5. Where the time went on SAMATVA</h2>
+<table>
+<tr><th style="width:42%">Step</th><th>Time, this machine</th><th>Time, with route 6</th></tr>
+<tr><td>Tracing the four marks into parts; measuring the infinity loop</td><td><span class="tag m">~2 min</span></td><td>same</td></tr>
+<tr><td>Style frames (5 Cycles stills, full quality)</td><td><span class="tag m">~6 min</span></td><td><span class="tag e">~30 s</span></td></tr>
+<tr><td>Heat-vision openings (154 frames, emission only)</td><td><span class="tag m">~20 min</span></td><td><span class="tag e">~2 min</span></td></tr>
+<tr><td>Five metal shots (520 frames, film settings)</td><td><span class="tag m">~2.2 h</span></td><td><span class="tag e">~8 min</span></td></tr>
+<tr><td>Smoothing to 24 fps + upscale + typography + assembly</td><td><span class="tag e">~15 min</span></td><td>same</td></tr>
+</table>
+
+<h2>6. What each option needs from you</h2>
+<ul>
+<li><b>Routes 1, 2 and 5:</b> nothing. Everything is installed in the <span class="mono">samatwam-films</span> environment and reinstalls itself on a fresh machine.</li>
+<li><b>Routes 3 and 4:</b> a laptop or desktop with an NVIDIA or AMD graphics card, and Blender or a browser installed on it. The scripts run unchanged.</li>
+<li><b>Route 6:</b> a free Kaggle account (phone-verified). I can prepare a ready notebook that installs Blender, renders the plates and zips them. You click “Run all” and send back the zip.</li>
+</ul>
+</body></html>
