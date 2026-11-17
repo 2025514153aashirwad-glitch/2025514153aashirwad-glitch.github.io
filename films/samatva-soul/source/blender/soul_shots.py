@@ -9,7 +9,7 @@ from mathutils import Vector
 A = sys.argv[sys.argv.index('--') + 1:]
 SHOT, PASS, OUTDIR = A[0], A[1], A[2]
 opt = {A[i]: A[i + 1] for i in range(3, len(A) - 1, 2)}
-FPS = int(opt.get('--fps', 12 if SHOT == 'reform' else 8))
+FPS = int(opt.get('--fps', 8))
 VEC = '/home/user/2025514153aashirwad-glitch.github.io/brand/logo/vector'
 HDRI = '/home/user/tools/assets/hdri/brown_photostudio_02.hdr'
 LEN = {'reform': 14, 'build': 14, 'gen': 13, 'loop': 12, 'finale': 12}[SHOT]
@@ -18,13 +18,13 @@ NF = LEN * FPS
 sc = bpy.context.scene
 for o in list(bpy.data.objects): bpy.data.objects.remove(o)
 sc.render.engine = 'CYCLES'; sc.cycles.device = 'CPU'
-sc.cycles.samples = int(opt.get('--samples', 18 if PASS == 'metal' else 10)); sc.cycles.use_denoising = True
-sc.cycles.denoiser = 'OPENIMAGEDENOISE'; sc.cycles.use_adaptive_sampling = True; sc.cycles.adaptive_threshold = .02
+sc.cycles.samples = int(opt.get('--samples', 10 if PASS == 'metal' else 10)); sc.cycles.use_denoising = True
+sc.cycles.denoiser = 'OPENIMAGEDENOISE'; sc.cycles.use_adaptive_sampling = True; sc.cycles.adaptive_threshold = .035
 rw, rh = map(int, opt.get('--res', '1280x720').split('x')); sc.render.resolution_x, sc.render.resolution_y = rw, rh
 sc.view_settings.view_transform = 'AgX'; sc.view_settings.look = 'AgX - Medium High Contrast'
 sc.render.fps = FPS; sc.frame_start, sc.frame_end = 1, NF
 sc.render.image_settings.file_format = 'PNG'; sc.render.image_settings.color_mode = 'RGB'
-sc.cycles.max_bounces = 6; sc.cycles.glossy_bounces = 4; sc.cycles.transmission_bounces = 2
+sc.cycles.max_bounces = 4; sc.cycles.glossy_bounces = 3; sc.cycles.transmission_bounces = 1; sc.cycles.diffuse_bounces = 2
 
 def ease(x): x = max(0, min(1, x)); return x * x * (3 - 2 * x)
 def ease5(x): x = max(0, min(1, x)); return x * x * x * (x * (x * 6 - 15) + 10)

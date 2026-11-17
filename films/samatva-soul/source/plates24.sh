@@ -3,7 +3,7 @@
 cd "$(dirname "$0")"
 for d in plates/*-metal plates/*-thermal; do
   n=$(basename $d); [ -d "$d" ] || continue
-  case $n in reform-*) fps=12;; *) fps=8;; esac
+  case $n in reform-thermal) fps=12;; *) fps=8;; esac
   mkdir -p plates24/$n
   ffmpeg -loglevel error -y -framerate $fps -i $d/%04d.png \
     -vf "minterpolate=fps=24:mi_mode=mci:mc_mode=aobmc:me_mode=bidir:vsbmc=1,scale=1920:1080:flags=lanczos,unsharp=5:5:0.55:5:5:0" \

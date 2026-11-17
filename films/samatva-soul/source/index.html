@@ -17,10 +17,10 @@ window.DUR = 90.0; window.EV = [];
 const INK = '#131313', MUTED = '#5C5C5C', GREY = '#A1A1AA';
 // ------------------------------------------------------------- the photoreal plates (24 fps, 1920x1080, from Blender)
 const SH = {
-  reform: { t0: 17, len: 14, th: true, n: '01', name: 'REFORM', sub: 'The Seer’s Gateway', line: 'Seen, not steered.', lt: [26.0, 30.4] },
-  build:  { t0: 31, len: 14, th: true, n: '02', name: 'BUILD', sub: 'The Builder’s Forge', line: 'Structure over noise.', lt: [39.6, 44.4] },
-  gen:    { t0: 45, len: 13, th: true, n: '03', name: 'GENERATION', sub: 'The Producer’s Lattice', line: 'Return over extraction.', lt: [53.4, 57.4] },
-  loop:   { t0: 58, len: 12, line: 'Standing over volume.', lt: [66.6, 69.6] },
+  reform: { t0: 17, len: 14, th: true, n: '01', name: 'REFORM', sub: 'The Seer’s Gateway', lines: [['One reformer observes. Logs. Structures their own reality.', 18.6, 24.6, 0], ['Seen, not steered.', 25.6, 30.4, 1]] },
+  build:  { t0: 31, len: 14, th: true, n: '02', name: 'BUILD', sub: 'The Builder’s Forge', lines: [['Builders turn verified reforms into real things.', 32.6, 37.8, 0], ['Structure over noise.', 38.8, 44.4, 1]] },
+  gen:    { t0: 45, len: 13, th: true, n: '03', name: 'GENERATION', sub: 'The Producer’s Lattice', lines: [['New hands enter. What rises returns to its source.', 46.6, 51.8, 0], ['Return over extraction.', 52.8, 57.4, 1]] },
+  loop:   { t0: 58, len: 12, lines: [['Standing over volume.', 59.0, 63.8, 1]] },
   finale: { t0: 70, len: 12 },
 };
 const ORDER = ['reform', 'build', 'gen', 'loop', 'finale'];
@@ -81,6 +81,11 @@ const PTS = (() => {
   for (let i = 0; i < 700; i++) out.push([.05 + r() * .9, .1 + r() * .8, r(), r() * .4]);   // the scattered, unseen ones
   return { out, C };
 })();
+// the story, told in type: a sentence (Geist Regular) or a principle (Geist Medium, larger), lower left, one at a time
+function say(t, s, a0, a1, big) {
+  const a = fade(t, a0, a1, .7), dy = 10 * (1 - ease((t - a0) / .9));
+  text(s, 120, H - 128 + dy, big ? '500 44px Geist' : '400 34px Geist', big ? '#fff' : 'rgba(255,255,255,.9)', a, 'left', big ? -.8 : -.3);
+}
 function unseen(t) {
   g.fillStyle = '#000'; g.fillRect(0, 0, W, H);
   const lt = t - 7, z = 1 + .07 * ease(lt / 10), ox = W * .5, oy = H * .5;
@@ -98,6 +103,7 @@ function unseen(t) {
   L.forEach(([x, y, , name], i) => { const a = fade(lt, 5.6 + i * .35, 10.4, .5); text(name, x * W + 18, y * H - 14, '13px GeistMono', 'rgba(244,239,230,.85)', a, 'left', 4);
     if (a > 0) { g.fillStyle = `rgba(244,239,230,${a})`; g.fillRect(x * W - 2, y * H - 2, 4, 4); } });
   g.restore();
+  say(t, 'Every day, millions of people see what no system records.', 9.4, 14.8, 0);
   g.fillStyle = `rgba(0,0,0,${clamp((lt - 9.3) / .7, 0, 1)})`; g.fillRect(0, 0, W, H);   // hand over to the first chapter
 }
 // ------------------------------------------------------------- the plates, with the heat draining out of the metal
@@ -119,11 +125,11 @@ async function chapter(name, t) {
   // chapter kicker, top left
   if (S.n) { const a = fade(lt, .5, 6.2, .7); text(`${S.n}   ${S.name}`, 120, 120, '15px GeistMono', '#fff', a, 'left', 5); text(S.sub, 120, 152, '400 20px Geist', 'rgba(255,255,255,.66)', a); }
   // the principle, lower left
-  if (S.line) { const a = fade(t, S.lt[0], S.lt[1], .7), dy = 10 * (1 - ease((t - S.lt[0]) / .9)); text(S.line, 120, H - 128 + dy, '500 44px Geist', '#fff', a, 'left', -.8); }
+  for (const [s, a0, a1, big] of S.lines || []) say(t, s, a0, a1, big);
   if (name === 'loop') {   // the four classes, each lit as it is named; all the same size
-    const C = ['CITIZEN', 'STUDENT', 'PARAPROFESSIONAL', 'PROFESSIONAL'], base = fade(t, 59.0, 68.6, .6);
-    C.forEach((c, i) => { const on = clamp((t - (59.6 + i * 1.18)) / .35, 0, 1); text(c, W - 120, H - 250 + i * 36, '14px GeistMono', `rgba(255,255,255,${.38 + .62 * on})`, base, 'right', 5); });
-    text('Equal standing.', W - 120, H - 92, '500 28px Geist', '#fff', fade(t, 65.0, 68.6, .5), 'right');
+    const C = ['CITIZEN', 'STUDENT', 'PARAPROFESSIONAL', 'PROFESSIONAL'], base = fade(t, 59.4, 68.8, .6);
+    C.forEach((c, i) => { const on = clamp((t - (60.2 + i * 1.0)) / .35, 0, 1); text(c, W - 120, H - 250 + i * 36, '14px GeistMono', `rgba(255,255,255,${.38 + .62 * on})`, base, 'right', 5); });
+    text('Equal standing.', W - 120, H - 92, '500 28px Geist', '#fff', fade(t, 64.6, 68.8, .5), 'right');
   }
   if (name === 'finale') text('BHARAT   ·   NEPAL   ·   NIGERIA', W / 2, H - 96, '15px GeistMono', 'rgba(255,255,255,.85)', fade(t, 72.4, 79.4, .8), 'center', 6);
 }
