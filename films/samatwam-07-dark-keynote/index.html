@@ -1,0 +1,144 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Samatwam 07 — Five Layers</title>
+<style>@font-face{font-family:Inter;src:url(fonts/Inter.ttf) format('truetype');font-weight:100 900}
+@font-face{font-family:SG;src:url(fonts/SpaceGrotesk.ttf) format('truetype');font-weight:300 700}
+@font-face{font-family:JBM;src:url(fonts/JetBrainsMono.ttf) format('truetype');font-weight:100 800}
+@font-face{font-family:Deva;src:url(fonts/NotoSansDevanagari.ttf) format('truetype');font-weight:100 900}
+html,body{margin:0;background:#07080b;overflow:hidden}canvas{display:block}</style></head>
+<body><canvas id="c" width="1920" height="1080"></canvas>
+<script src="common.js"></script>
+<script>
+const { clamp, lerp, seg, eio, eo, ei, back, hash, F } = SK;
+const W = 1920, H = 1080, BEAT = .5;   // 120 BPM
+window.DUR = 60.0;
+const cv = document.getElementById('c'), g = cv.getContext('2d');
+const VO = { l1: 1.5, l2: 14.2, l3: 19.2, l4: 25.0, l5: 33.4, l6: 47.4 }, VOD = { l1: 1.921, l2: 3.032, l3: 2.276, l4: 2.337, l5: 2.324, l6: 3.288 };
+const CAP = [
+  ['l1', 'It starts with one person.', 'शुरुआत एक इंसान से होती है।'],
+  ['l2', 'Around them, a teacher and a mentor.', 'उसके आसपास, एक शिक्षक और एक मेंटर।'],
+  ['l3', 'Then a school. Then a field.', 'फिर एक स्कूल। फिर एक क्षेत्र।'],
+  ['l4', 'When everything arrives at once,', 'जब सब कुछ एक साथ आता है,'],
+  ['l5', 'every piece finds its layer.', 'हर टुकड़ा अपनी परत पा लेता है।'],
+  ['l6', 'Five layers. One person at the centre.', 'पाँच परतें। बीच में एक इंसान।'],
+];
+const AC = '#8B7CFF', BAD = '#FF4D5E';
+const N = { bg: '#07080b', s1: '#101218', s2: '#161a22', s3: '#1e232e', line: 'rgba(160,175,210,.10)', t1: '#E8ECF5', t2: '#9AA3B5', t3: '#5E6778' };
+// ---------------------------------------------------------------- the five layers (concentric frames around the cursor)
+const LAY = [
+  { n: 'L1', a: 'INDIVIDUAL', b: 'Generative', w: 330, h: 190, t: 4.0 },
+  { n: 'L2', a: 'AUTHORITY', b: 'Sustainative', w: 600, h: 345, t: 14.0 },
+  { n: 'L3', a: 'INSTITUTIONAL', b: 'Transmittive', w: 870, h: 500, t: 19.0 },
+  { n: 'L4', a: 'ORGANIZATIONAL', b: 'Custodial', w: 1140, h: 655, t: 34.0 },
+  { n: 'L5', a: 'PUBLIC', b: 'Witness', w: 1410, h: 810, t: 36.0 },
+];
+// three tiles per layer (sub-members unnamed): positions in the band between this frame and the one inside
+function tiles(i) {
+  const L = LAY[i], P = i ? LAY[i - 1] : { w: 0, h: 0 }, bw = (L.w - P.w) / 2, bh = (L.h - P.h) / 2;
+  if (i === 0) return [[-120, -10, 70, 90], [120, -10, 70, 90], [0, -60, 90, 34]];
+  const tw = Math.max(60, bw * .62), th = Math.max(40, bh * .55);
+  return [[-(P.w / 2 + bw / 2), 0, tw, th * 1.6], [P.w / 2 + bw / 2, 0, tw, th * 1.6], [0, P.h / 2 + bh / 2, Math.min(260, P.w * .4), th]];
+}
+// ---------------------------------------------------------------- generated accumulation: cards pour in, freeze, then snap into layers
+const NC = 320, CARDS = [];
+for (let i = 0; i < NC; i++) {
+  const side = hash(i * 1.3), ang = hash(i * 2.7) * Math.PI * 2;
+  const from = [Math.cos(ang) * 1400, Math.sin(ang) * 900];
+  const at = [(hash(i * 3.1) - .5) * 1500, (hash(i * 4.7) - .5) * 860];
+  const tIn = 24.2 + 5.6 * Math.pow(i / NC, .55);                  // faster and faster
+  const lay = i % 5, L = LAY[lay], P = lay ? LAY[lay - 1] : { w: 120, h: 70 };
+  // target: a cell on the band of its layer (top and bottom bands), in a tidy grid
+  const k = Math.floor(i / 5), perRow = Math.max(4, Math.floor(L.w / 52)), row = k % 2, col = Math.floor(k / 2) % perRow;
+  const bandH = (L.h - P.h) / 2, tx = -L.w / 2 + 34 + col * ((L.w - 68) / (perRow - 1 || 1)), ty = L.h / 2 - bandH * (row ? .28 : .68);
+  CARDS.push({ from, at, tIn, to: [tx, ty], lay, red: hash(i * 9.9) < .22, rot: (hash(i * 5.5) - .5) * .5 });
+}
+const FREEZE = [30.0, 33.0], SNAP = 33.0;
+// ---------------------------------------------------------------- camera: a 2D zoom around the cursor
+const CK = [[0, 2.6], [4, 2.6], [12.5, 2.2], [14.5, 1.5], [18.6, 1.45], [20.2, 1.1], [24, 1.05], [30, .96], [33, .96], [37.5, .9], [46, .9], [52, .78], [54, .78]];
+function zoom(t) { let i = 0; while (i < CK.length - 2 && t > CK[i + 1][0]) i++; const a = CK[i], b = CK[i + 1]; return Math.exp(lerp(Math.log(a[1]), Math.log(b[1]), eio(seg(t, a[0], b[0])))); }
+// ---------------------------------------------------------------- drawing
+function stage(t) {
+  const gr = g.createRadialGradient(W / 2, H * .45, 50, W / 2, H / 2, W * .75); gr.addColorStop(0, '#141826'); gr.addColorStop(1, N.bg); g.fillStyle = gr; g.fillRect(0, 0, W, H);
+  // hairline grid
+  g.strokeStyle = N.line; g.lineWidth = 1; const z = zoom(t), sp = 60 * z; const ox = (W / 2) % sp, oy = (H / 2) % sp;
+  g.beginPath(); for (let x = ox; x < W; x += sp) { g.moveTo(x + .5, 0); g.lineTo(x + .5, H); } for (let y = oy; y < H; y += sp) { g.moveTo(0, y + .5); g.lineTo(W, y + .5); } g.globalAlpha = seg(t, 3.8, 5.0) * .9; g.stroke(); g.globalAlpha = 1;
+  // soft cool light from above
+  const lg = g.createRadialGradient(W / 2, -200, 50, W / 2, -200, H * 1.2); lg.addColorStop(0, `rgba(150,170,255,${.09 * seg(t, 3.8, 6)})`); lg.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = lg; g.fillRect(0, 0, W, H);
+}
+function frameRing(i, t, z) {
+  const L = LAY[i], a = eo(seg(t, L.t, L.t + .5)); if (a <= 0) return;
+  const w = L.w * z * lerp(1.06, 1, back(seg(t, L.t, L.t + .45))), h = L.h * z * lerp(1.06, 1, back(seg(t, L.t, L.t + .45)));
+  g.save(); g.globalAlpha = a; g.strokeStyle = i === 0 ? 'rgba(139,124,255,.55)' : 'rgba(170,185,220,.28)'; g.lineWidth = 1.2; g.beginPath(); g.roundRect(W / 2 - w / 2, H / 2 - h / 2, w, h, 18 * Math.min(1.4, z)); g.stroke();
+  // label at the frame's top-left corner
+  const lx = W / 2 - w / 2 + 16 * z, ly = H / 2 - h / 2 - 14;
+  g.font = F(600, 15, 'JBM'); g.fillStyle = N.t3; g.letterSpacing = '2px'; g.fillText(L.n, lx, ly);
+  g.font = F(700, 20, 'SG'); g.fillStyle = N.t1; g.fillText(L.a, lx + 40, ly); const m = g.measureText(L.a).width;
+  g.font = F(500, 20, 'Inter'); g.fillStyle = N.t2; g.letterSpacing = '0px'; g.fillText('· ' + L.b, lx + 48 + m, ly);
+  SK.reg('lay' + i, L.n + ' ' + L.a + ' · ' + L.b, lx, ly - 18, lx + 60 + m + g.measureText('· ' + L.b).width, ly + 4);
+  g.restore();
+}
+function tileSet(i, t, z) {
+  const L = LAY[i]; tiles(i).forEach(([x, y, w, h], j) => {
+    const tt = L.t + .25 + j * BEAT / 2, a = eo(seg(t, tt, tt + .35)); if (a <= 0) return;
+    const s = lerp(.86, 1, back(seg(t, tt, tt + .35))), X = W / 2 + x * z, Y = H / 2 + y * z, ww = w * z * s, hh = h * z * s;
+    g.save(); g.globalAlpha = a; g.fillStyle = N.s2; g.strokeStyle = 'rgba(200,210,240,.14)'; g.lineWidth = 1; g.beginPath(); g.roundRect(X - ww / 2, Y - hh / 2, ww, hh, 10 * Math.min(1.5, z)); g.fill(); g.stroke();
+    // tile content: three bars of skeleton UI (unlabelled sub-members)
+    g.fillStyle = N.s3; for (let k = 0; k < 3; k++) { g.beginPath(); g.roundRect(X - ww / 2 + 10 * z, Y - hh / 2 + (12 + k * 13) * z, (ww - 20 * z) * (k === 0 ? .55 : .85 - k * .15), 6 * z, 3 * z); g.fill(); }
+    g.restore();
+  });
+}
+function cards(t, z) {
+  if (t < 24.2) return;
+  const frozen = t >= FREEZE[0] && t < FREEZE[1];
+  for (let i = 0; i < NC; i++) {
+    const c = CARDS[i]; if (t < c.tIn - .6) continue;
+    const ft = Math.min(t, FREEZE[0]);
+    let x, y, rot = c.rot, a = 1;
+    const u = eo(seg(ft, c.tIn - .6, c.tIn)); x = lerp(c.from[0], c.at[0], u); y = lerp(c.from[1], c.at[1], u);
+    if (t >= SNAP) { const s = seg(t, SNAP + (i % 7) * .015, SNAP + .55 + (i % 7) * .015), e = s < 1 ? eio(s) : 1; x = lerp(c.at[0], c.to[0], e); y = lerp(c.at[1], c.to[1], e); rot = lerp(c.rot, 0, e); }
+    const X = W / 2 + x * z, Y = H / 2 + y * z, cw = 40 * z, ch = 26 * z;
+    g.save(); g.translate(X, Y); g.rotate(rot); g.globalAlpha = a * (frozen ? .9 : 1);
+    g.fillStyle = N.s3; g.strokeStyle = 'rgba(200,210,240,.18)'; g.lineWidth = 1; g.beginPath(); g.roundRect(-cw / 2, -ch / 2, cw, ch, 4 * z); g.fill(); g.stroke();
+    g.fillStyle = N.t3; g.fillRect(-cw / 2 + 5 * z, -ch / 2 + 6 * z, cw * .5, 3 * z); g.fillRect(-cw / 2 + 5 * z, -ch / 2 + 13 * z, cw * .7, 3 * z);
+    if (c.red && t < SNAP + .6) { g.fillStyle = BAD; g.globalAlpha *= 1 - seg(t, SNAP, SNAP + .6); g.beginPath(); g.arc(cw / 2 - 5 * z, -ch / 2 + 5 * z, 3.4 * z, 0, 7); g.fill(); }
+    g.restore();
+  }
+}
+function cursor(t, z) {
+  const blink = t < 4 ? (Math.floor(t / .5) % 2 ? .25 : 1) : 1, X = W / 2, Y = H / 2, s = 1.4 * Math.min(1.6, z);
+  // glow (the accent owns it)
+  const gl = g.createRadialGradient(X, Y, 0, X, Y, 70 * s); gl.addColorStop(0, `rgba(139,124,255,${.35 * blink})`); gl.addColorStop(1, 'rgba(139,124,255,0)'); g.fillStyle = gl; g.fillRect(X - 80 * s, Y - 80 * s, 160 * s, 160 * s);
+  g.save(); g.translate(X - 6 * s, Y - 12 * s); g.scale(s, s); g.globalAlpha = blink; g.fillStyle = AC; g.strokeStyle = '#ffffff'; g.lineWidth = 1.2;
+  g.beginPath(); g.moveTo(0, 0); g.lineTo(0, 22); g.lineTo(6, 17); g.lineTo(10, 26); g.lineTo(13.5, 24.5); g.lineTo(9.5, 15.5); g.lineTo(17, 15.5); g.closePath(); g.fill(); g.stroke(); g.restore();
+}
+function frame(t) {
+  SK.reset(); g.setTransform(1, 0, 0, 1, 0, 0); g.globalAlpha = 1; g.filter = 'none';
+  const z = zoom(t);
+  stage(t);
+  const frozen = t >= FREEZE[0] && t < FREEZE[1];
+  for (let i = 0; i < 5; i++) { frameRing(i, t, z); tileSet(i, t, z); }
+  cards(t, z);
+  cursor(t, z);
+  // freeze: a breath of digital zero (the frame desaturates and holds)
+  if (frozen) { g.fillStyle = 'rgba(7,8,11,.35)'; g.fillRect(0, 0, W, H); g.font = F(600, 16, 'JBM'); g.fillStyle = N.t3; g.letterSpacing = '4px'; g.fillText('00:00:00:00', W - 220, H - 160); g.letterSpacing = '0px'; }
+  // the giant line (46–54)
+  const gk = seg(t, 48.6, 49.4) * (1 - seg(t, 53.6, 54.1)); if (gk > 0) {
+    g.save(); g.globalAlpha = gk; g.fillStyle = 'rgba(7,8,11,.62)'; g.fillRect(0, 0, W, H); g.font = F(700, 112, 'SG'); g.textAlign = 'center'; g.fillStyle = N.t1; g.letterSpacing = '-2px';
+    g.fillText('Many bodies.', W / 2, H / 2 - 30); g.fillStyle = AC; g.fillText('One structure.', W / 2, H / 2 + 100); g.letterSpacing = '0px'; g.restore();
+    SK.reg('giant', 'Many bodies. One structure.', W / 2 - 560, H / 2 - 120, W / 2 + 560, H / 2 + 130); }
+  // end card (54–60): the mark in the accent's glow, the name and the line
+  const ek = seg(t, 54.2, 55.6); if (ek > 0) {
+    g.fillStyle = `rgba(7,8,11,${seg(t, 54.0, 54.5)})`; g.fillRect(0, 0, W, H);
+    SK.mark(g, 560, 560, 1.3, ek, AC, 1); SK.endText(g, 54.8, t, 800, 470, { fg: N.t1, sub: N.t2, accent: AC });
+  }
+  SK.series(g, '07', 'Five Layers', { fg: N.t1, accent: AC, plate: 'rgba(16,18,24,.85)' });
+  SK.subs(g, t, CAP, VO, VOD, { box: 'rgba(16,18,24,.9)', en: N.t1, hi: N.t2 });
+}
+window.render = t => frame(t);
+window.TEXTS = t => { frame(t); return SK.texts(); };
+const EV = [{ t: 0, type: 'blink' }];
+LAY.forEach((L, i) => { EV.push({ t: L.t, type: 'layer', i }); [0, 1, 2].forEach(j => EV.push({ t: L.t + .25 + j * BEAT / 2, type: 'tile', i })); });
+CARDS.forEach((c, i) => { if (i % 3 === 0) EV.push({ t: c.tIn, type: 'card' }); });
+EV.push({ t: FREEZE[0], type: 'freeze' }, { t: SNAP, type: 'snap' }, { t: 48.6, type: 'giant' }, { t: 54.2, type: 'end' });
+window.EV = EV;
+Promise.all(['700 20px SG', '600 20px JBM', '500 20px Inter', '500 20px Deva'].map(f => document.fonts.load(f, f.includes('Deva') ? 'हर' : 'A'))).then(() => { frame(0); window.READY = true; });
+</script></body></html>

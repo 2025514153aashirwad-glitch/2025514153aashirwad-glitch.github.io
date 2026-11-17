@@ -1,0 +1,153 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Samatwam 08 — The Creative Arena</title>
+<style>@font-face{font-family:Inter;src:url(fonts/Inter.ttf) format('truetype');font-weight:100 900}
+@font-face{font-family:SG;src:url(fonts/SpaceGrotesk.ttf) format('truetype');font-weight:300 700}
+@font-face{font-family:Deva;src:url(fonts/NotoSansDevanagari.ttf) format('truetype');font-weight:100 900}
+html,body{margin:0;background:#120a05;overflow:hidden}canvas{display:block}</style></head>
+<body><canvas id="c" width="1920" height="1080"></canvas>
+<script src="common.js"></script>
+<script>
+const { clamp, lerp, seg, eio, eo, ei, back, hash, F } = SK;
+const W = 1920, H = 1080, BEAT = .6;   // 100 BPM
+window.DUR = 60.0;
+const cv = document.getElementById('c'), g = cv.getContext('2d');
+const VO = { l1: 1.2, l2: 7.0, l3: 12.8, l4: 35.0, l5: 46.6 }, VOD = { l1: 2.815, l2: 2.523, l3: 2.452, l4: 2.25, l5: 4.027 };
+const CAP = [
+  ['l1', 'Every story begins with one lamp.', 'हर कहानी एक दीये से शुरू होती है।'],
+  ['l2', 'Samatwam brings the tools.', 'समत्वम् औज़ार देता है।'],
+  ['l3', 'The creator brings the vision.', 'रचनाकार अपनी दृष्टि लाता है।'],
+  ['l4', 'What they make is theirs.', 'वे जो बनाते हैं, वह उनका है।'],
+  ['l5', 'Fifty lamps. Fifty stories. One open series.', 'पचास दीये। पचास कहानियाँ। एक खुली सीरीज़।'],
+];
+// dyes (transmitted light): river set — indigo, jade, ochre; raw hide; ink
+const DY = { indigo: '#3a4fb8', jade: '#2f9a78', ochre: '#d99a2b', flame: '#e5602a', hide: '#e2bf8a', ink: '#2a1608' };
+// ---------------------------------------------------------------- the screen and its lamps
+function screenLight(cx, cy, lamps, w, h) {   // cotton lit from behind: warm, brightest at each lamp
+  g.fillStyle = '#1a0f07'; g.fillRect(cx - w / 2, cy - h / 2, w, h);
+  g.save(); g.beginPath(); g.rect(cx - w / 2, cy - h / 2, w, h); g.clip(); g.globalCompositeOperation = 'lighter';
+  for (const L of lamps) { if (L.a <= 0) continue; const gr = g.createRadialGradient(L.x, L.y, 0, L.x, L.y, L.r); const fl = 1 + .04 * Math.sin(L.ph + T * 23) + .03 * Math.sin(L.ph * 2 + T * 37);
+    gr.addColorStop(0, `rgba(255,214,150,${.95 * L.a * fl})`); gr.addColorStop(.45, `rgba(240,170,90,${.55 * L.a * fl})`); gr.addColorStop(1, 'rgba(120,60,20,0)'); g.fillStyle = gr; g.fillRect(cx - w / 2, cy - h / 2, w, h); }
+  g.restore();
+  // cotton weave
+  g.save(); g.globalAlpha = .05; g.strokeStyle = '#000'; g.lineWidth = 1; g.beginPath(); for (let x = cx - w / 2; x < cx + w / 2; x += 6) { g.moveTo(x, cy - h / 2); g.lineTo(x, cy + h / 2); } g.stroke(); g.restore();
+}
+let T = 0;
+// a dyed-hide piece: translucent dye glowing with the light behind it, ink outline, carved holes brightest
+function hide(path, dye, a = 1, holes = []) {
+  g.save(); g.globalAlpha = a * .86; g.fillStyle = dye; path(); g.fill();
+  g.globalAlpha = a * .5; g.globalCompositeOperation = 'multiply'; g.fillStyle = dye; path(); g.fill(); g.globalCompositeOperation = 'source-over';
+  g.globalAlpha = a; g.strokeStyle = DY.ink; g.lineWidth = 3.2; path(); g.stroke();
+  g.fillStyle = 'rgba(255,236,190,.95)'; for (const [x, y, r] of holes) { g.beginPath(); g.ellipse(x, y, r, r * .7, 0, 0, 7); g.fill(); }
+  g.restore();
+}
+const P = pts => () => { g.beginPath(); pts.forEach((p, i) => i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1])); g.closePath(); };
+const rod = (x0, y0, x1, y1, a = 1) => { g.save(); g.globalAlpha = a; g.strokeStyle = 'rgba(30,14,4,.85)'; g.lineWidth = 2.6; g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke(); g.restore(); };
+// the creator: a jointed figure in profile (head, torso, skirt, arm), thread rivets at the joints
+function creator(x, y, s, lean = 0, armUp = 0, a = 1, dye = DY.jade) {
+  g.save(); g.translate(x, y); g.scale(s, s); g.rotate(lean);
+  hide(P([[-30, 0], [-40, 120], [40, 120], [30, 0]]), DY.indigo, a, [[0, 60, 6], [-14, 92, 5], [14, 92, 5]]);       // skirt, carved
+  hide(P([[-22, -110], [-26, 0], [26, 0], [22, -110]]), dye, a, [[0, -60, 7], [0, -30, 5]]);                         // torso
+  hide(() => { g.beginPath(); g.arc(4, -142, 28, 0, Math.PI * 2); }, DY.hide, a, [[14, -146, 4]]);                    // head (eye carved)
+  hide(P([[-26, -168], [-6, -186], [26, -172], [30, -158], [-30, -150]]), DY.ink, a);                                   // hair knot
+  g.save(); g.translate(18, -96); g.rotate(-.6 - armUp * 1.1);
+  hide(P([[-7, 0], [-6, 70], [6, 70], [7, 0]]), DY.ochre, a); hide(P([[-6, 68], [-4, 120], [6, 120], [6, 68]]), DY.hide, a);
+  g.fillStyle = DY.ink; g.beginPath(); g.arc(0, 0, 4, 0, 7); g.arc(0, 68, 3.5, 0, 7); g.fill(); g.restore();
+  g.restore();
+}
+// staged scenery: a river, a field, a city (carved hide strips)
+function river(x, y, w, a) { hide(() => { g.beginPath(); g.moveTo(x, y); for (let i = 0; i <= 40; i++) g.lineTo(x + w * i / 40, y + 10 * Math.sin(i * .7 + T * 2)); for (let i = 40; i >= 0; i--) g.lineTo(x + w * i / 40, y + 46 + 8 * Math.sin(i * .6 + T * 2 + 1)); g.closePath(); }, DY.indigo, a, Array.from({ length: 9 }, (_, i) => [x + 40 + i * w / 9, y + 24, 6]));
+  hide(P([[x + w * .3, y + 18], [x + w * .3 + 50, y + 8], [x + w * .3 + 80, y + 20], [x + w * .3 + 50, y + 30]]), DY.jade, a, [[x + w * .3 + 60, y + 18, 3]]); }
+function field(x, y, w, a) { for (let i = 0; i < 6; i++) hide(() => { g.beginPath(); g.ellipse(x + i * w / 6 + w / 12, y, w / 13, 30, 0, Math.PI, 0); g.closePath(); }, i % 2 ? DY.ochre : DY.jade, a, [[x + i * w / 6 + w / 12, y - 14, 4]]);
+  for (let i = 0; i < 12; i++) { g.save(); g.globalAlpha = a; g.strokeStyle = DY.ink; g.lineWidth = 3; g.beginPath(); g.moveTo(x + i * w / 12 + 10, y); g.lineTo(x + i * w / 12 + 14, y - 46); g.stroke(); g.restore(); } }
+function city(x, y, w, a) { const hs = [90, 140, 110, 170, 120, 150, 100]; hs.forEach((h, i) => { const bx = x + i * w / 7, bw = w / 7 - 8;
+  hide(() => { g.beginPath(); g.moveTo(bx, y); g.lineTo(bx, y - h); if (i % 3 === 1) g.arc(bx + bw / 2, y - h, bw / 2, Math.PI, 0); else g.lineTo(bx + bw / 2, y - h - 26); g.lineTo(bx + bw, y - h); g.lineTo(bx + bw, y); g.closePath(); }, i % 2 ? DY.ochre : DY.flame, a, [[bx + bw / 2, y - h * .6, 6], [bx + bw / 2, y - h * .3, 5]]); }); }
+// the creator's own carved mark (their signature: a carved seal, not Samatwam's)
+function seal(x, y, r, a) { hide(() => { g.beginPath(); g.rect(x - r, y - r, 2 * r, 2 * r); }, DY.flame, a, [[x - r * .4, y - r * .4, r * .18], [x + r * .4, y - r * .4, r * .18], [x, y + r * .3, r * .28]]); }
+// ---------------------------------------------------------------- scenes
+function behind(t) {   // behind the screen: hands, rods, a small lit tablet (the tools)
+  g.fillStyle = '#0d0703'; g.fillRect(0, 0, W, H);
+  // the back of the cloth glows; the lamp in the foreground
+  const sg = g.createRadialGradient(980, 380, 50, 980, 380, 900); sg.addColorStop(0, 'rgba(255,190,110,.42)'); sg.addColorStop(1, 'rgba(60,30,10,.1)'); g.fillStyle = sg; g.fillRect(120, 80, 1680, 640);
+  g.strokeStyle = 'rgba(90,50,20,.9)'; g.lineWidth = 14; g.strokeRect(120, 80, 1680, 640);
+  creator(900, 520, 1.25, .1, .4 * Math.sin(t * 2), .55, DY.jade);   // the puppet from behind: darker
+  rod(990, 380, 1080, 1000); rod(870, 520, 760, 1000);
+  // hands
+  g.fillStyle = '#2a170a'; [[1080, 960, .3], [760, 960, -.3]].forEach(([x, y, r]) => { g.save(); g.translate(x, y); g.rotate(r); g.beginPath(); g.ellipse(0, 0, 70, 44, 0, 0, 7); g.fill(); g.fillRect(-60, 20, 120, 160); g.restore(); });
+  // the small lit tablet: the tools Samatwam brings
+  const tk = seg(t, 6.6, 7.4); g.save(); g.globalAlpha = tk; g.translate(1430, 860); g.rotate(-.08);
+  g.fillStyle = '#1c1410'; g.beginPath(); g.roundRect(-210, -120, 420, 250, 18); g.fill(); g.fillStyle = 'rgba(255,214,160,.92)'; g.beginPath(); g.roundRect(-196, -106, 392, 222, 10); g.fill();
+  const items = ['agents', 'models', 'interfaces', 'tools', 'creative frameworks']; g.fillStyle = DY.ink; g.font = F(700, 24, 'SG'); g.fillText('SAMATWAM PROVIDES', -176, -70);
+  items.forEach((s, i) => { const a = seg(t, 7.4 + i * .3, 7.7 + i * .3); g.globalAlpha = tk * a; g.font = F(600, 24); g.fillText('· ' + s, -176, -30 + i * 30); });
+  g.restore(); if (t > 9) SK.reg('tools', 'SAMATWAM PROVIDES agents models interfaces tools creative frameworks', 1250, 750, 1640, 990);
+  // the oil lamp in the foreground
+  lampObj(560, 780, 1.4, 1);
+}
+function lampObj(x, y, s, on) { g.save(); g.translate(x, y); g.scale(s, s); g.fillStyle = '#5a3a1a'; g.beginPath(); g.ellipse(0, 0, 46, 16, 0, 0, Math.PI); g.lineTo(-46, 0); g.fill(); g.fillRect(-8, 0, 16, 60); g.beginPath(); g.ellipse(0, 60, 30, 9, 0, 0, 7); g.fill();
+  if (on) { const fl = 1 + .08 * Math.sin(T * 31); const gl = g.createRadialGradient(0, -24, 0, 0, -24, 120); gl.addColorStop(0, 'rgba(255,210,120,.65)'); gl.addColorStop(1, 'rgba(255,150,60,0)'); g.fillStyle = gl; g.fillRect(-120, -144, 240, 240);
+    g.fillStyle = '#ffe6a0'; g.beginPath(); g.moveTo(0, -46 * fl); g.quadraticCurveTo(14, -16, 0, -2); g.quadraticCurveTo(-14, -16, 0, -46 * fl); g.fill(); } g.restore(); }
+function front(t) {   // the screen from the audience side
+  const lamps = [{ x: 960, y: 420, r: 900, a: eo(seg(t, .3, 1.6)), ph: 0 }];
+  for (let k = 0; k < 6; k++) lamps.push({ x: 260 + k * 280, y: 380 + 60 * (k % 2), r: 480, a: .42 * eo(seg(t, 18.5 + k * BEAT * 2, 19.4 + k * BEAT * 2)) * (t > 28 && t < 33 ? .35 : 1), ph: k * 1.7 });
+  screenLight(W / 2, H / 2, lamps, W, H);
+  // the stories staged on the cloth
+  const sa = seg(t, 11.2, 12.0), fa = seg(t, 13.6, 14.4), ca = seg(t, 15.8, 16.6);
+  if (t < 44) { river(120, 760, 760, sa); field(980, 820, 820, fa); city(1060, 560, 700, ca); }
+  // more figures across the cloth as lamps come on
+  for (let k = 0; k < 4; k++) { const a = seg(t, 19.6 + k * 1.6, 20.2 + k * 1.6); if (a > 0 && t < 44) creator(300 + k * 420, 700, .62, (k % 2 ? .12 : -.1), .5 * Math.sin(t * 2 + k), a, [DY.jade, DY.flame, DY.ochre, DY.indigo][k]); }
+  // the protagonist puppet: leans into the glow; pulled toward the lamp (big and blurred), then snaps sharp
+  if (t < 44) {
+    const pull = eio(seg(t, 28.2, 31.2)) * (1 - seg(t, 33.0, 33.12)), sharpAt = 33.0;
+    const s = lerp(1.45, 3.2, pull), blur = pull * 26, x = lerp(820, 900, pull), y = lerp(700, 820, pull);
+    g.save(); if (blur > .5) g.filter = `blur(${blur.toFixed(1)}px)`; g.globalAlpha = 1 - .3 * pull;
+    creator(x, y, s, lerp(-.08 + .06 * Math.sin(t * 1.4), 0, pull), .3 + .3 * Math.sin(t * 1.8), 1, DY.jade); g.restore();
+    rod(x + 90 * s, y - 100 * s, x + 200 * s, 1100, 1 - pull); rod(x - 20 * s, y - 40 * s, x - 120 * s, 1100, 1 - pull);
+    // the creator signs it: their own carved seal stamps beside the figure
+    const sk = seg(t, 36.6, 37.0); if (sk > 0) { seal(1180, 560, 46 * back(sk, 2.5), 1); g.font = F(700, 24, 'SG'); g.fillStyle = DY.ink; g.globalAlpha = seg(t, 37.0, 37.4); g.fillText("the creator's own mark", 1240, 575); g.globalAlpha = 1; if (t > 37.4) SK.reg('own', "the creator's own mark", 1240, 552, 1520, 580); }
+  }
+}
+function series(t) {   // 44–56: fifty lamps, fifty stories on one long screen
+  g.fillStyle = '#0d0703'; g.fillRect(0, 0, W, H);
+  const pw = 300, ph = 220, gap = 26, cols = 25, total = cols * (pw + gap);
+  const pan = lerp(0, total - W + 200, eio(seg(t, 44.4, 55.0))), zoomOut = lerp(1, .78, eio(seg(t, 44.4, 47)));
+  g.save(); g.translate(W / 2, H / 2 - 40); g.scale(zoomOut, zoomOut); g.translate(-W / 2 - pan + 100, -H / 2 + 40);
+  for (let r = 0; r < 2; r++) for (let c = 0; c < cols; c++) {
+    const i = r * cols + c, x = 100 + c * (pw + gap), y = 230 + r * (ph + 40), on = eo(seg(t, 44.4 + i * .05, 44.9 + i * .05));
+    const lamps = [{ x: x + pw / 2, y: y + ph / 2, r: pw * .9, a: on, ph: i }];
+    screenLight(x + pw / 2, y + ph / 2, lamps, pw, ph);
+    g.save(); g.beginPath(); g.rect(x, y, pw, ph); g.clip(); g.translate(x, y); g.scale(.17, .17);
+    const k = Math.floor(hash(i * 3.3) * 4); if (k === 0) river(80, 900, 1500, on); else if (k === 1) field(80, 1150, 1500, on); else if (k === 2) city(200, 1200, 1300, on); else creator(860, 1050, 2.4, 0, .3, on, [DY.jade, DY.flame, DY.ochre, DY.indigo][i % 4]);
+    g.restore(); g.strokeStyle = '#3a220f'; g.lineWidth = 6; g.strokeRect(x, y, pw, ph);
+  }
+  g.restore();
+  // the example cohort, lettered on a dark strip under the screen
+  const la = seg(t, 47.0, 47.6) * (1 - seg(t, 55.4, 55.8)); if (la > 0) { g.save(); g.globalAlpha = la; g.font = F(700, 30, 'SG'); g.fillStyle = '#e9cf9a'; g.textAlign = 'center'; g.letterSpacing = '3px';
+    g.fillText('EXAMPLE COHORT · 50 CREATORS · 50 FIVE-MINUTE CLIPS', W / 2, 850); g.font = F(600, 24); g.fillStyle = '#c9a874'; g.letterSpacing = '2px'; g.fillText('selected works sponsored into one open series', W / 2, 892); g.restore();
+    SK.reg('cohort', 'EXAMPLE COHORT · 50 CREATORS · 50 FIVE-MINUTE CLIPS', W / 2 - 520, 822, W / 2 + 520, 856); SK.reg('open', 'selected works sponsored into one open series', W / 2 - 330, 870, W / 2 + 330, 898); }
+}
+function endCard(t) {
+  const lamps = [{ x: 620, y: 520, r: 760, a: .9, ph: 0 }, { x: 1230, y: 540, r: 820, a: .8, ph: 2 }]; screenLight(W / 2, H / 2, lamps, W, H);
+  // the Samatwam mark, cut in dyed hide on the screen (ochre with an ink edge)
+  const k = seg(t, 56.1, 57.3); g.save(); g.globalAlpha = .9; SK.mark(g, 600, 560, 1.35, k, DY.ink, 1.6); g.globalAlpha = .55; SK.mark(g, 600, 560, 1.35, k, DY.ochre, 1.0); g.restore();
+  SK.endText(g, 56.6, t, 860, 470, { fg: DY.ink, sub: '#5a3a1a', accent: DY.flame });
+}
+function frame(t) {
+  SK.reset(); T = t; g.setTransform(1, 0, 0, 1, 0, 0); g.globalAlpha = 1; g.filter = 'none';
+  if (t >= 5.2 && t < 10.8) behind(t);
+  else if (t < 44) front(t);
+  else if (t < 56) series(t);
+  else endCard(t);
+  // a soft dip between front and behind (cloth turning)
+  const dip = Math.max(1 - Math.abs(t - 5.2) / .25, 1 - Math.abs(t - 10.8) / .25, 1 - Math.abs(t - 44) / .3, 1 - Math.abs(t - 56) / .3, 0);
+  if (dip > 0) { g.fillStyle = `rgba(13,7,3,${dip})`; g.fillRect(0, 0, W, H); }
+  const vg = g.createRadialGradient(W / 2, H / 2, H * .4, W / 2, H / 2, H * 1.05); vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(20,8,0,.5)'); g.fillStyle = vg; g.fillRect(0, 0, W, H);
+  SK.series(g, '08', 'The Creative Arena', { fg: '#f3dcb0', accent: '#ffb35a', plate: 'rgba(30,16,6,.8)' });
+  SK.subs(g, t, CAP, VO, VOD, { box: 'rgba(30,16,6,.86)', en: '#f6e2bd', hi: '#d9bd8e' });
+}
+window.render = t => frame(t);
+window.TEXTS = t => { frame(t); return SK.texts(); };
+const EV = [{ t: .3, type: 'lamp', i: 0 }];
+for (let k = 0; k < 6; k++) EV.push({ t: 18.5 + k * BEAT * 2, type: 'lamp', i: k + 1 });
+EV.push({ t: 5.2, type: 'cloth' }, { t: 10.8, type: 'cloth' }, { t: 11.2, type: 'tap' }, { t: 13.6, type: 'tap' }, { t: 15.8, type: 'tap' }, { t: 28.2, type: 'pull' }, { t: 33.0, type: 'snap' }, { t: 36.6, type: 'seal' }, { t: 44.4, type: 'fifty' }, { t: 56.1, type: 'end' });
+window.EV = EV;
+Promise.all(['700 20px SG', '600 20px Inter', '500 20px Deva'].map(f => document.fonts.load(f, f.includes('Deva') ? 'हर' : 'A'))).then(() => { frame(0); window.READY = true; });
+</script></body></html>

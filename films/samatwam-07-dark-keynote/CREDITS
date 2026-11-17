@@ -1,0 +1,6 @@
+Content: Samatwam Film Series brief (Samatwam Org). The Samatwam Prime mark is drawn in code from its parts (owned by Samatwam Org).
+Picture: drawn in code (index.html, Canvas 2D), following the Lemo-Opuscar style rules (github.com/lemomo-ai/lemo-opuscar). No stock, footage or generated imagery.
+Typefaces (SIL OFL 1.1): Inter (Rasmus Andersson); Space Grotesk (Florian Karsten); JetBrains Mono (JetBrains); Noto Sans Devanagari (Google / Noto).
+Voice: Kokoro-82M text-to-speech (Apache 2.0), voice "bm_george", offline.
+Music and sound: synthesized in code (mix.py, samatwam_audio.py); foley from the library's procedural sfx.py. No samples or recordings.
+Tools: FFmpeg; headless Chromium.
