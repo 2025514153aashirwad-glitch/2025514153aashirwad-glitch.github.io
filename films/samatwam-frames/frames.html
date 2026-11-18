@@ -30,6 +30,7 @@ h2 { font-weight: 500; font-size: 28px; letter-spacing: -.025em; margin: 0 0 16p
 @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
 .clip { display: grid; gap: 12px; align-content: start; min-width: 0; }
 video { width: 100%; max-width: 100%; aspect-ratio: 16 / 9; background: #000; display: block; border-radius: 14px; border: 1px solid var(--rim); }
+.pending { aspect-ratio: 16 / 9; max-width: 100%; display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
 .ttl { display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; }
 .ttl .n { font-family: var(--mono); font-size: 13px; color: var(--saff); letter-spacing: .1em; }
 .ttl h3 { font-weight: 500; font-size: 23px; letter-spacing: -.02em; margin: 0; }
@@ -116,7 +117,7 @@ const CLIPS = [
 ];
 const state = {}; CLIPS.forEach(c => state[c[0]] = { verdict: '', fit: 0, notes: '' });
 document.getElementById('grid').innerHTML = CLIPS.map(([id, n, name, style, line]) => `<article class="clip" aria-labelledby="h-${id}">
-  <video src="mp4/F${n}-${id}.mp4" muted loop playsinline autoplay preload="metadata" controls></video>
+  <video src="mp4/F${n}-${id}.mp4" muted loop playsinline autoplay preload="metadata" controls onerror="this.outerHTML='<div class=&quot;pending glass&quot;>Rendering · this clip arrives in the next update</div>'"></video>
   <div class="ttl"><span class="n">F${n}</span><h3 id="h-${id}">${name}</h3></div>
   <div class="style">Style · ${style}</div>
   <p class="line">${line}</p>
