@@ -1,0 +1,160 @@
+<title>Samatwam Frames</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500&family=Playfair+Display:ital@1&family=JetBrains+Mono:wght@400&display=swap">
+<style>
+/* Layout: Liquid Night screening room. One committed dark look (the series' own palette); header, decisions, then 18 clips in a two-column grid with your verdict under each. */
+:root {
+  --night: #0A0B0E; --navy: #13213D; --panel: rgba(255,255,255,.045); --rim: rgba(255,255,255,.16); --text: #ECE8DF; --muted: #A8A39A; --saff: #D9822B; --lsaff: #F2B766; --gold: #B08D3C;
+  --keep: #7CC08F; --maybe: #F2B766; --drop: #E9806F;
+  --display: "Space Grotesk", "Inter", system-ui, sans-serif; --em: "Playfair Display", Georgia, serif; --mono: "JetBrains Mono", ui-monospace, monospace;
+  color-scheme: dark;
+}
+body { background: var(--night); color: var(--text); font-family: var(--display); font-size: 15px; line-height: 1.55; }
+body::after { content: ""; position: fixed; inset: 0; pointer-events: none; background: radial-gradient(ellipse 80% 50% at 70% 0%, rgba(31,58,122,.35), transparent 70%), radial-gradient(ellipse 50% 40% at 0% 10%, rgba(217,130,43,.12), transparent 70%); z-index: -1; }
+.wrap { max-width: 1320px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 44px 90px; display: grid; gap: 52px; }
+.label { font-family: var(--mono); font-size: 11.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+header { display: grid; gap: 16px; }
+h1 { font-weight: 500; font-size: clamp(40px, 6.6vw, 84px); letter-spacing: -.045em; line-height: .98; margin: 0; text-wrap: balance; }
+h1 i, .em { font-family: var(--em); font-style: italic; font-weight: 400; color: var(--lsaff); letter-spacing: -.01em; }
+.lede { max-width: 68ch; color: var(--muted); margin: 0; font-size: 16px; }
+.status { font-family: var(--mono); font-size: 12px; color: var(--lsaff); }
+.glass { background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.025)); border: 1px solid var(--rim); border-radius: 22px; box-shadow: inset 0 1px 0 rgba(255,255,255,.18), 0 20px 50px rgba(0,0,0,.35); }
+h2 { font-weight: 500; font-size: 28px; letter-spacing: -.025em; margin: 0 0 16px; }
+.decisions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+@media (max-width: 820px) { .decisions { grid-template-columns: 1fr; } }
+.dec { padding: 18px 20px; display: grid; gap: 6px; min-width: 0; }
+.dec b { font-weight: 500; font-size: 17px; }
+.dec p { margin: 0; color: var(--muted); }
+.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 40px 28px; }
+@media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+.clip { display: grid; gap: 12px; align-content: start; min-width: 0; }
+video { width: 100%; max-width: 100%; aspect-ratio: 16 / 9; background: #000; display: block; border-radius: 14px; border: 1px solid var(--rim); }
+.ttl { display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; }
+.ttl .n { font-family: var(--mono); font-size: 13px; color: var(--saff); letter-spacing: .1em; }
+.ttl h3 { font-weight: 500; font-size: 23px; letter-spacing: -.02em; margin: 0; }
+.aspect { margin: 0; }
+.style { font-family: var(--mono); font-size: 12px; color: var(--lsaff); letter-spacing: .06em; }
+.line { margin: 0; color: var(--muted); font-size: 14px; }
+.yours { display: grid; gap: 10px; padding-top: 12px; border-top: 1px dashed var(--rim); }
+.controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.seg { display: inline-flex; gap: 4px; }
+.seg button { font-family: var(--mono); font-size: 12.5px; border: 1px solid var(--rim); background: var(--panel); color: var(--text); border-radius: 999px; padding: 6px 13px; cursor: pointer; font-variant-numeric: tabular-nums; }
+.seg button:hover { border-color: var(--lsaff); }
+.seg.fit button[aria-pressed="true"] { background: var(--saff); border-color: var(--saff); color: var(--night); }
+.seg.v button[data-v="keep"][aria-pressed="true"] { background: var(--keep); border-color: var(--keep); color: var(--night); }
+.seg.v button[data-v="maybe"][aria-pressed="true"] { background: var(--maybe); border-color: var(--maybe); color: var(--night); }
+.seg.v button[data-v="drop"][aria-pressed="true"] { background: var(--drop); border-color: var(--drop); color: var(--night); }
+textarea { font: inherit; width: 100%; box-sizing: border-box; min-height: 64px; resize: vertical; padding: 10px 14px; border: 1px solid var(--rim); border-radius: 14px; background: var(--panel); color: var(--text); }
+textarea::placeholder { color: var(--muted); }
+textarea:focus, button:focus-visible { outline: 2px solid var(--lsaff); outline-offset: 2px; }
+.saved { font-family: var(--mono); font-size: 12px; color: var(--muted); min-height: 1.2em; }
+.foot { font-size: 13px; color: var(--muted); }
+ul.qs { margin: 0; padding-left: 20px; color: var(--muted); display: grid; gap: 6px; }
+ul.qs b { color: var(--text); font-weight: 500; }
+@media (prefers-reduced-motion: reduce) { video { animation: none; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="label">Samatwam · Frames · Liquid Night · 18 clips × 5 seconds</div>
+    <h1>Eighteen angles, <i>one</i> night.</h1>
+    <p class="lede">Each clip explains one side of Samatwam that the launch film does not cover, in its own visual style. All of them share one system: liquid gradients, glass panels and fine hairlines on deep night, one saffron accent, and gold only where work is proven. Every pixel is drawn by code. There are no photos and no generated images. Mark each clip, score its fit, and leave notes. Your marks save as you go.</p>
+    <div class="status" id="status">Connecting to your saved notes…</div>
+  </header>
+
+  <section aria-labelledby="dec-h">
+    <h2 id="dec-h">How the prompt book was carried out</h2>
+    <div class="decisions">
+      <div class="dec glass"><b>Same rules, a lighter engine</b><p>The book names Remotion. These clips use the same principle (code only, frame-exact, one command per clip) on the HTML, GSAP and WebGL route already working here, which renders on a cloud computer with no graphics card. The book still runs as written in Claude Code on a computer with a graphics card. Remotion is free for teams of up to 3 people.</p></div>
+      <div class="dec glass"><b>Glass, honestly</b><p>Panels have a 1 px rim, a specular top edge, an inner shadow and a real background blur of what sits behind them. True lens distortion (drei's transmission material) needs a graphics card, so it is not in these previews.</p></div>
+      <div class="dec glass"><b>Silent, 1080p</b><p>Sound is left out, as you asked earlier ("loose audio"). These are 1920 × 1080 web cuts. The 4K masters, the vertical 1080 × 1920 recomposes and the 90-second reel wait for your go (phase 7 of the book).</p></div>
+      <div class="dec glass"><b>Gold and honesty</b><p>Gold appears only in F09 (the proven line and its seal) and F17 (the final seal). Every clip that shows invented figures carries an ILLUSTRATIVE tag. No DPIIT or Startup India mark appears anywhere: their email limits logo use to the approved event.</p></div>
+      <div class="dec glass"><b>References as mood only</b><p>Your board (liquid UI, glass buttons, octagon portholes, HUD frames, keynote black) set the mood. No layout, photo, logo or text from those references is copied.</p></div>
+      <div class="dec glass"><b>Each clip ends on a hold</b><p>Frames 0–30 reveal, 30–110 move the idea, 110–150 hold on the title line, with custom easing curves throughout and a three-dot rail that tracks the phase.</p></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="q-h">
+    <h2 id="q-h">Names to confirm before the masters</h2>
+    <ul class="qs">
+      <li><b>F05:</b> the three tabs on each layer card (Learner, Builder, Researcher · Reviewer, Mentor, Steward · School, Industry, Government) are placeholders.</li>
+      <li><b>F17:</b> the seven streams and six disciplines show as numerals (I–VII, 1–6) because their names are not in the book.</li>
+      <li><b>F04, F09:</b> SAMT01/001 and OR-2027-0117 follow the book's examples; the claim lines are illustrative.</li>
+      <li><b>F06:</b> is "only key metrics shared, raw data stays with the learner" the exact data policy you want to state publicly?</li>
+    </ul>
+  </section>
+
+  <section aria-labelledby="clips-h">
+    <h2 id="clips-h">The eighteen</h2>
+    <div class="grid" id="grid"></div>
+  </section>
+  <p class="foot">1920 × 1080, 30 fps, silent. Type: Space Grotesk, Playfair Display italic and JetBrains Mono (all SIL Open Font License). Motion: GSAP with SplitText, DrawSVG, ScrambleText, CustomEase (free licence). Voronoi panes: d3-delaunay (ISC). QR: qrcode (MIT).</p>
+</div>
+
+<script>
+const CLIPS = [
+  ['think', '01', 'To think is the real skill', 'Focus | Blur', 'Tool names drift past, soft and unreadable, on the navy side. DECIDE pulls from 40 px blur to sharp on the saffron side, with three glass droplets on the diagonal.'],
+  ['bandwidth', '02', 'The full bandwidth', 'Layered Panes', 'An idea travels through six glass panes and gains structure at each: scatter, contours, wireframe, ruled grid, interface card, recalibration. An arc closes the loop.'],
+  ['womb', '03', 'The womb', 'Flow field', 'Nine hundred flow lines bend into a membrane around six seeds (five hexagons, one octagon). Each seed grows new branches as the field touches it.'],
+  ['claim-card', '04', 'Claim card and SAMT ticket', 'Glass product', 'A glass card turns face-on over moving caustics. A real QR code, the address SAMT01/001 and a typed claim, then the flip to four stage pips with only Claimed lit.'],
+  ['interface-layers', '05', 'Three interface layers', 'Desktop flythrough', 'Three glass cards rise in turn: Individual grows shapes (Generative), Authority holds its gauges level (Sustainative), Institutional sends lines outward (Transmittive).'],
+  ['your-data', '06', 'Your AI, your data', 'Security x-ray', 'A project case with the learner’s own model plugged in reaches a glass scanner. Only three metric tags pass to the platform; the case returns untouched.'],
+  ['sim-arena', '07', 'Simulation Arena', 'Lidar survey', 'A scan plane reveals a robot cell as points. Three ghost runs of the arm work in parallel, then converge into one motion.'],
+  ['thought-to-part', '08', 'Thought to prototype', 'Precise mechanism', 'One pencil-weight line draws a gripper. The parts fill, extrude and snap together, then the jaws close on a part. Sketch, CAD, Sim, Prototype light in turn.'],
+  ['certified', '09', 'Certified creation', 'Gilded illumination', 'A dark vellum page draws its border from hexagons, octagons and the sun. One claim is proven, one is not yet tested, and gold runs only beside the proven line.'],
+  ['engineering-cases', '10', 'Engineering cases', 'Thermal, recoloured', 'A bracket under load in a night-to-saffron thermal ramp. A hotspot glows at the fillet; lattice infill grows and the peak stress falls from 248 to 162 MPa.'],
+  ['open-learning', '11', 'Open learning', 'Stained glass', 'A stained-glass leaf, built from Voronoi panes, lifts and rearranges into the panels and ribs of a canopy roof.'],
+  ['creative-arena', '12', 'Creative Arena', 'Octagon portholes', 'Five octagon windows play procedural scenes of Bharat: ink-wash river, a kolam drawing itself, dawn, monsoon rain, festival lights. The camera pushes into one, which becomes Episode 01.'],
+  ['requirements', '13', 'The requirements loop', 'Hologram HUD', 'A requirement leaves its node, routes to the three best-fit learners, forms a waveform between them, and reaches Delivery. REQ-0081 · routed 3 / 40 · due 14 days.'],
+  ['tokens', '14', 'Tools built with earned tokens', 'Iso infographic', 'A checklist ticks and tokens fill. Each four tokens spent drops a block (Library, Skill, Connector) onto a stack that becomes a tool, while the agentic history scrolls.'],
+  ['transcendence', '15', 'Transcendence phase', 'Oscilloscope', 'A tool’s trace tunes into phase with real data, five peers rate it, then a second tool’s trace combines with it into a new waveform: a new repo.'],
+  ['hive', '16', 'The hive network', 'Dark keynote', 'Glass hexagon tools assemble into a honeycomb. A question is typed, and only four cells light as the answer travels through them.'],
+  ['vision-modules', '17', 'Vision modules', 'Art deco', 'A sunburst of seven rays. A vision module rises through seven ray gates and six chevrons, each lighting as it passes; its seal turns gold only at the top.'],
+  ['four-es', '18', 'Four Es for schools', 'Liquid glass UI', 'A liquid blob fills four glass buttons in turn: Enable, Engage, Enhance. At Educate Samatwam the flow reverses and runs back into the Samatwam sun.'],
+];
+const state = {}; CLIPS.forEach(c => state[c[0]] = { verdict: '', fit: 0, notes: '' });
+document.getElementById('grid').innerHTML = CLIPS.map(([id, n, name, style, line]) => `<article class="clip" aria-labelledby="h-${id}">
+  <video src="mp4/F${n}-${id}.mp4" muted loop playsinline autoplay preload="metadata" controls></video>
+  <div class="ttl"><span class="n">F${n}</span><h3 id="h-${id}">${name}</h3></div>
+  <div class="style">Style · ${style}</div>
+  <p class="line">${line}</p>
+  <div class="yours">
+    <div class="controls">
+      <div class="seg v" role="group" aria-label="Keep ${name}?">${[['keep', 'Keep'], ['maybe', 'Maybe'], ['drop', 'Drop']].map(([v, l]) => `<button type="button" id="v-${id}-${v}" data-c="${id}" data-verdict="${v}" data-v="${v}" aria-pressed="false">${l}</button>`).join('')}</div>
+      <span class="label" id="fit-${id}">Fit</span>
+      <div class="seg fit" role="group" aria-labelledby="fit-${id}">${[1, 2, 3, 4, 5].map(v => `<button type="button" id="f-${id}-${v}" data-c="${id}" data-fit="${v}" aria-pressed="false">${v}</button>`).join('')}</div>
+    </div>
+    <label class="label" for="notes-${id}">Your notes on F${n}</label>
+    <textarea id="notes-${id}" data-c="${id}" placeholder="What would you change? Where would you use it?"></textarea>
+    <div class="saved" id="saved-${id}"></div>
+  </div></article>`).join('');
+function paint() { for (const [id] of CLIPS) { const st = state[id];
+  for (const v of ['keep', 'maybe', 'drop']) document.getElementById(`v-${id}-${v}`).setAttribute('aria-pressed', String(st.verdict === v));
+  for (let f = 1; f <= 5; f++) document.getElementById(`f-${id}-${f}`).setAttribute('aria-pressed', String(st.fit === f));
+  const ta = document.getElementById('notes-' + id); if (document.activeElement !== ta) ta.value = st.notes || ''; } }
+let db = null; const timers = {}, busy = {}; const statusEl = document.getElementById('status');
+const say = (id, t) => { const e = document.getElementById('saved-' + id); if (e) e.textContent = t; };
+function queue(id) {
+  clearTimeout(timers[id]); say(id, db ? 'Saving…' : 'Not saved: open this page signed in to claude.ai to keep notes');
+  if (!db) return;
+  timers[id] = setTimeout(async () => { if (busy[id]) return queue(id); busy[id] = true;
+    try { await db.doc('frames/' + id).set({ ...state[id], clip: id, updatedAt: Date.now() }); say(id, 'Saved'); }
+    catch (e) { say(id, 'Could not save. Check your connection, then change any answer to try again.'); }
+    busy[id] = false; }, 600);
+}
+document.addEventListener('click', e => { const b = e.target.closest('button'); if (!b || !b.dataset.c) return; const st = state[b.dataset.c];
+  if (b.dataset.verdict) st.verdict = st.verdict === b.dataset.verdict ? '' : b.dataset.verdict;
+  if (b.dataset.fit) { const f = Number(b.dataset.fit); st.fit = st.fit === f ? 0 : f; }
+  paint(); queue(b.dataset.c); });
+document.addEventListener('input', e => { const t = e.target; if (t.tagName !== 'TEXTAREA' || !t.dataset.c) return; state[t.dataset.c].notes = t.value; queue(t.dataset.c); });
+paint();
+(async () => {
+  const to = setTimeout(() => { if (!db) statusEl.textContent = 'Notes are not saving in this view. Open the page signed in to claude.ai to keep them.'; }, 10000);
+  try { db = await (window.claude?.use ? window.claude.use('db') : Promise.resolve(null)); } catch (e) { db = null; } clearTimeout(to);
+  if (!db) { statusEl.textContent = 'Notes are not saving in this view. Open the page signed in to claude.ai to keep them.'; return; }
+  statusEl.textContent = 'Signed in · your marks and notes save automatically';
+  db.collection('frames').onSnapshot(snap => { for (const d of snap.docs) { const v = d.data(); if (state[d.id] && !busy[d.id]) Object.assign(state[d.id], v); } paint(); },
+    () => { statusEl.textContent = 'Saved notes could not be loaded. New notes will still save.'; });
+})();
+</script>
