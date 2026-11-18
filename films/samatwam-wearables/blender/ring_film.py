@@ -5,7 +5,7 @@ import bpy, bmesh, math, sys, os, argparse
 from mathutils import Vector
 argv = sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else []
 ap = argparse.ArgumentParser(); ap.add_argument('--shot', default='black_hero'); ap.add_argument('--out', default='out/x.png')
-ap.add_argument('--samples', type=int, default=96); ap.add_argument('--res', default='1920x1080'); ap.add_argument('--anim', type=int, default=0); ap.add_argument('--gpu', action='store_true')
+ap.add_argument('--samples', type=int, default=96); ap.add_argument('--res', default='1920x1080'); ap.add_argument('--anim', type=int, default=0); ap.add_argument('--gpu', action='store_true'); ap.add_argument('--frame', type=int, default=0)
 A = ap.parse_args(argv); MM = .001; HERE = os.path.dirname(os.path.abspath(__file__))
 bpy.ops.wm.read_factory_settings(use_empty=True); S = bpy.context.scene
 
@@ -122,6 +122,12 @@ elif shot == 'white_turn':
 elif shot == 'black_turn':
     stand(0); camera((.05, -.17, .045), T0, 100, 5.6); area('Key', (-.12, -.1, .16), (.18, .1), 9, (1, .97, .93)); area('Rim', (.14, .14, .05), (.02, .25), 6, (.85, .9, 1))
     anim.append((root, 'rotation_euler', [(math.radians(90), 0, math.radians(-30)), (math.radians(90), 0, math.radians(150))]))
+elif shot == 'black_push':    # T3: from the hero framing into the status light, which brightens as we arrive
+    stand(34); tg = bpy.data.objects.new('Target', None); S.collection.objects.link(tg); tg.location = T0
+    camera((.06, -.16, .05), T0, 100, 4); tc = cam.constraints.new('TRACK_TO'); tc.target = tg; tc.track_axis = 'TRACK_NEGATIVE_Z'; tc.up_axis = 'UP_Y'; cd.dof.focus_object = tg
+    area('Key', (-.12, -.1, .16), (.18, .1), 4, (1, .97, .93)); area('Rim', (.14, .14, .05), (.02, .25), 6, (.85, .9, 1))
+    anim += [(cam, 'location', [(.06, -.16, .05), (.0045, -.022, .031)]), (tg, 'location', [tuple(T0), (0, -1.8 * MM, 23.2 * MM)]),
+             (root, 'rotation_euler', [(math.radians(90), 0, math.radians(34)), (math.radians(90), 0, math.radians(14))]), (cd.dof, 'aperture_fstop', [4, 8])]
 
 # ---------------------------------------------------------------- render
 S.render.engine = 'CYCLES'; S.cycles.samples = A.samples; S.cycles.use_denoising = True
@@ -150,8 +156,13 @@ if A.anim:
     S.frame_start, S.frame_end = 1, A.anim
     for ob, prop, (v0, v1) in anim:
         setattr(ob, prop, v0); ob.keyframe_insert(prop, frame=1); setattr(ob, prop, v1); ob.keyframe_insert(prop, frame=A.anim)
-        for fc in ob.animation_data.action.fcurves:
+        ad = ob.animation_data if hasattr(ob, 'animation_data') and ob.animation_data else cd.animation_data
+        for fc in ad.action.fcurves:
             for kp in fc.keyframe_points: kp.interpolation = 'BEZIER'; kp.easing = 'EASE_IN_OUT'
-    bpy.ops.render.render(animation=True)
+    if shot == 'black_push':
+        led = [n for n in LED.node_tree.nodes if n.type == 'BSDF_PRINCIPLED'][0].inputs['Emission Strength']
+        for f, v in ((1, 6), (int(A.anim * .55), 8), (A.anim, 26)): led.default_value = v; led.keyframe_insert('default_value', frame=f)
+    if A.frame: S.frame_set(A.frame); print('LEDW', tuple(round(v*1000,2) for v in l.matrix_world.translation), 'CAM', tuple(round(v*1000,1) for v in cam.matrix_world.translation)); bpy.ops.render.render(write_still=True)
+    else: bpy.ops.render.render(animation=True)
 else:
     bpy.ops.render.render(write_still=True)
