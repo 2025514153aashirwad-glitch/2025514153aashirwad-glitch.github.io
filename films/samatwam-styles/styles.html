@@ -1,0 +1,131 @@
+<title>Samatwam Style Clips</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500&display=swap">
+<style>
+/* Layout: Liquid Night screening room. One committed dark look (the series' own palette); header, decisions, then 18 clips in a two-column grid with your verdict under each. */
+:root {
+  --night: #0A0B0E; --navy: #13213D; --panel: rgba(255,255,255,.045); --rim: rgba(255,255,255,.16); --text: #ECE8DF; --muted: #A8A39A; --saff: #D9822B; --lsaff: #F2B766; --gold: #B08D3C;
+  --keep: #7CC08F; --maybe: #F2B766; --drop: #E9806F;
+  --display: "Geist", "Inter", system-ui, sans-serif; --em: "Geist", system-ui, sans-serif; --mono: "Geist", system-ui, sans-serif;
+  color-scheme: dark;
+}
+body { background: var(--night); color: var(--text); font-family: var(--display); font-size: 15px; line-height: 1.55; }
+body::after { content: ""; position: fixed; inset: 0; pointer-events: none; background: radial-gradient(ellipse 80% 50% at 70% 0%, rgba(31,58,122,.35), transparent 70%), radial-gradient(ellipse 50% 40% at 0% 10%, rgba(217,130,43,.12), transparent 70%); z-index: -1; }
+.wrap { max-width: 1320px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 44px 90px; display: grid; gap: 52px; }
+.label { font-family: var(--mono); font-size: 11.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+header { display: grid; gap: 16px; }
+h1 { font-weight: 500; font-size: clamp(40px, 6.6vw, 84px); letter-spacing: -.045em; line-height: .98; margin: 0; text-wrap: balance; }
+h1 i, .em { font-style: normal; color: var(--lsaff); }
+.lede { max-width: 68ch; color: var(--muted); margin: 0; font-size: 16px; }
+.status { font-family: var(--mono); font-size: 12px; color: var(--lsaff); }
+.glass { background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.025)); border: 1px solid var(--rim); border-radius: 22px; box-shadow: inset 0 1px 0 rgba(255,255,255,.18), 0 20px 50px rgba(0,0,0,.35); }
+h2 { font-weight: 500; font-size: 28px; letter-spacing: -.025em; margin: 0 0 16px; }
+.decisions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+@media (max-width: 820px) { .decisions { grid-template-columns: 1fr; } }
+.dec { padding: 18px 20px; display: grid; gap: 6px; min-width: 0; }
+.dec b { font-weight: 500; font-size: 17px; }
+.dec p { margin: 0; color: var(--muted); }
+.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 40px 28px; }
+@media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+.clip { display: grid; gap: 12px; align-content: start; min-width: 0; }
+video { width: 100%; max-width: 100%; aspect-ratio: 16 / 9; background: #000; display: block; border-radius: 14px; border: 1px solid var(--rim); }
+.pending { aspect-ratio: 16 / 9; max-width: 100%; display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.ttl { display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; }
+.ttl .n { font-family: var(--mono); font-size: 13px; color: var(--saff); letter-spacing: .1em; }
+.ttl h3 { font-weight: 500; font-size: 23px; letter-spacing: -.02em; margin: 0; }
+.aspect { margin: 0; }
+.style { font-family: var(--mono); font-size: 12px; color: var(--lsaff); letter-spacing: .06em; }
+.line { margin: 0; color: var(--muted); font-size: 14px; }
+.yours { display: grid; gap: 10px; padding-top: 12px; border-top: 1px dashed var(--rim); }
+.controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.seg { display: inline-flex; gap: 4px; }
+.seg button { font-family: var(--mono); font-size: 12.5px; border: 1px solid var(--rim); background: var(--panel); color: var(--text); border-radius: 999px; padding: 6px 13px; cursor: pointer; font-variant-numeric: tabular-nums; }
+.seg button:hover { border-color: var(--lsaff); }
+.seg.fit button[aria-pressed="true"] { background: var(--saff); border-color: var(--saff); color: var(--night); }
+.seg.v button[data-v="keep"][aria-pressed="true"] { background: var(--keep); border-color: var(--keep); color: var(--night); }
+.seg.v button[data-v="maybe"][aria-pressed="true"] { background: var(--maybe); border-color: var(--maybe); color: var(--night); }
+.seg.v button[data-v="drop"][aria-pressed="true"] { background: var(--drop); border-color: var(--drop); color: var(--night); }
+textarea { font: inherit; width: 100%; box-sizing: border-box; min-height: 64px; resize: vertical; padding: 10px 14px; border: 1px solid var(--rim); border-radius: 14px; background: var(--panel); color: var(--text); }
+textarea::placeholder { color: var(--muted); }
+textarea:focus, button:focus-visible { outline: 2px solid var(--lsaff); outline-offset: 2px; }
+.saved { font-family: var(--mono); font-size: 12px; color: var(--muted); min-height: 1.2em; }
+.foot { font-size: 13px; color: var(--muted); }
+ul.qs { margin: 0; padding-left: 20px; color: var(--muted); display: grid; gap: 6px; }
+ul.qs b { color: var(--text); font-weight: 500; }
+@media (prefers-reduced-motion: reduce) { video { animation: none; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="label">Samatwam · 8 style frames · 2 seconds each · 60 fps</div>
+    <h1>Eight frames. <i>Two seconds each.</i></h1>
+    <p class="lede">Each clip covers one side of Samatwam: what it is, what a learner leaves with, its role, its six classes, where value goes, its wearables, the requirement loop and its track record. Every element arrives out of a blur on a spring and then holds, rendered at 60 fps from a 2× capture.</p>
+    <div class="status" id="status">Connecting to your saved notes…</div>
+  </header>
+
+  <section aria-labelledby="dec-h"><h2 id="dec-h">To confirm</h2><div class="decisions"><div class="dec glass"><b>Six class names (F04)</b><p>Build, Open Research, Simulation, Physical AI, Creative Arena, Data are still my reading of the brochure.</p></div><div class="dec glass"><b>The third 15% (F05)</b><p>Platform and operations is an assumption; the frame labels it illustrative.</p></div><div class="dec glass"><b>Wearables (F06)</b><p>Only the Ring is modelled; the other four use icons until they are.</p></div><div class="dec glass"><b>Figures</b><p>150 learners, 30 schools and 104 students come from your earlier briefs.</p></div></div></section>
+
+  <section aria-labelledby="clips-h">
+    <h2 id="clips-h">The eight clips</h2>
+    <div class="grid" id="grid"></div>
+  </section>
+  <p class="foot">1920 × 1080, 60 fps, 7 seconds, silent; captured at 2× and downscaled. Springs from Motion (the Framer Motion engine). Type: Geist. Motion: GSAP with DrawSVG, MotionPath and CustomEase. Style reference: the motion-system board you shared, rebuilt with original Samatwam content.</p>
+</div>
+
+<script>
+const CLIPS = [
+  ['statement', '01', 'Statement', 'Poster', 'Samatwam turns learners into certified builders.'],
+  ['build-record', '02', 'Build record', 'Object', 'What a learner leaves with, certified.'],
+  ['our-role', '03', 'Our role', 'System', 'Samatwam connecting learners, teachers, mentors, creators, industry, schools and government.'],
+  ['six-classes', '04', 'Six classes', 'Bento', 'Six classes, six kinds of output.'],
+  ['contribution', '05', 'Contribution', 'Editorial data', '70% to builders, 15% to the commons.'],
+  ['wearables', '06', 'Wearables', 'Lineup', 'Five Physical AI wearables; the Ring rendered in Blender.'],
+  ['requirement-exchange', '07', 'Requirement Exchange', 'Product flow', 'Posted, matched, built, delivered.'],
+  ['track-record', '08', 'Track record', 'Timeline', '30 schools and 104 students, then Cohort 01 with 150 learners.'],
+];
+const state = {}; CLIPS.forEach(c => state[c[0]] = { verdict: '', fit: 0, notes: '' });
+document.getElementById('grid').innerHTML = CLIPS.map(([id, n, name, style, line]) => `<article class="clip" aria-labelledby="h-${id}">
+  <video src="mp4/F${n}-${id}.mp4" muted loop playsinline autoplay preload="metadata" controls onerror="this.outerHTML='<div class=&quot;pending glass&quot;>Rendering · this clip arrives in the next update</div>'"></video>
+  <div class="ttl"><span class="n">F${n}</span><h3 id="h-${id}">${name}</h3></div>
+  <div class="style">Style · ${style}</div>
+  <p class="line">${line}</p>
+  <div class="yours">
+    <div class="controls">
+      <div class="seg v" role="group" aria-label="Keep ${name}?">${[['keep', 'Keep'], ['maybe', 'Maybe'], ['drop', 'Drop']].map(([v, l]) => `<button type="button" id="v-${id}-${v}" data-c="${id}" data-verdict="${v}" data-v="${v}" aria-pressed="false">${l}</button>`).join('')}</div>
+      <span class="label" id="fit-${id}">Fit</span>
+      <div class="seg fit" role="group" aria-labelledby="fit-${id}">${[1, 2, 3, 4, 5].map(v => `<button type="button" id="f-${id}-${v}" data-c="${id}" data-fit="${v}" aria-pressed="false">${v}</button>`).join('')}</div>
+    </div>
+    <label class="label" for="notes-${id}">Your notes on F${n}</label>
+    <textarea id="notes-${id}" data-c="${id}" placeholder="What would you change? Where would you use it?"></textarea>
+    <div class="saved" id="saved-${id}"></div>
+  </div></article>`).join('');
+function paint() { for (const [id] of CLIPS) { const st = state[id];
+  for (const v of ['keep', 'maybe', 'drop']) document.getElementById(`v-${id}-${v}`).setAttribute('aria-pressed', String(st.verdict === v));
+  for (let f = 1; f <= 5; f++) document.getElementById(`f-${id}-${f}`).setAttribute('aria-pressed', String(st.fit === f));
+  const ta = document.getElementById('notes-' + id); if (document.activeElement !== ta) ta.value = st.notes || ''; } }
+let db = null; const timers = {}, busy = {}; const statusEl = document.getElementById('status');
+const say = (id, t) => { const e = document.getElementById('saved-' + id); if (e) e.textContent = t; };
+function queue(id) {
+  clearTimeout(timers[id]); say(id, db ? 'Saving…' : 'Not saved: open this page signed in to claude.ai to keep notes');
+  if (!db) return;
+  timers[id] = setTimeout(async () => { if (busy[id]) return queue(id); busy[id] = true;
+    try { await db.doc('styles/' + id).set({ ...state[id], clip: id, updatedAt: Date.now() }); say(id, 'Saved'); }
+    catch (e) { say(id, 'Could not save. Check your connection, then change any answer to try again.'); }
+    busy[id] = false; }, 600);
+}
+document.addEventListener('click', e => { const b = e.target.closest('button'); if (!b || !b.dataset.c) return; const st = state[b.dataset.c];
+  if (b.dataset.verdict) st.verdict = st.verdict === b.dataset.verdict ? '' : b.dataset.verdict;
+  if (b.dataset.fit) { const f = Number(b.dataset.fit); st.fit = st.fit === f ? 0 : f; }
+  paint(); queue(b.dataset.c); });
+document.addEventListener('input', e => { const t = e.target; if (t.tagName !== 'TEXTAREA' || !t.dataset.c) return; state[t.dataset.c].notes = t.value; queue(t.dataset.c); });
+paint();
+(async () => {
+  const to = setTimeout(() => { if (!db) statusEl.textContent = 'Notes are not saving in this view. Open the page signed in to claude.ai to keep them.'; }, 10000);
+  try { db = await (window.claude?.use ? window.claude.use('db') : Promise.resolve(null)); } catch (e) { db = null; } clearTimeout(to);
+  if (!db) { statusEl.textContent = 'Notes are not saving in this view. Open the page signed in to claude.ai to keep them.'; return; }
+  statusEl.textContent = 'Signed in · your marks and notes save automatically';
+  db.collection('styles').onSnapshot(snap => { for (const d of snap.docs) { const v = d.data(); if (state[d.id] && !busy[d.id]) Object.assign(state[d.id], v); } paint(); },
+    () => { statusEl.textContent = 'Saved notes could not be loaded. New notes will still save.'; });
+})();
+</script>

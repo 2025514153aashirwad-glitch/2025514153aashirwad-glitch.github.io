@@ -1,7 +1,7 @@
 // Samatwam style frames: eight compositions in one system (dark field, saffron to white, Geist, the Samatwam mark).
 const S = BLUE; // saffron ramp from board.js: deep, saffron, light saffron, cream
 const INKBG = '#050608';
-function bgField(glows) { el('div', { ...full, background: INKBG }); glows.forEach(([x, y, r, a]) => el('div', { ...full, background: `radial-gradient(${r}px ${r * .8}px at ${x}px ${y}px, rgba(217,130,43,${a}), rgba(217,130,43,0) 70%)` })); }
+function bgField(glows) { el('div', { ...full, background: INKBG }).dataset.bg = 1; glows.forEach(([x, y, r, a]) => { const g = el('div', { ...full, background: `radial-gradient(${r}px ${r * .8}px at ${x}px ${y}px, rgba(217,130,43,${a}), rgba(217,130,43,0) 70%)` }); g.dataset.bg = 1; if (window.FAST) tl.fromTo(g, { opacity: 0, scale: 1.15 }, { opacity: 1, scale: 1, duration: 1.4, ease: 'glide' }, 0); }); }
 function hdr(label1, label2) { label(`Samatwam · ${label1}`, { left: '104px', top: '56px', fontSize: '13px', letterSpacing: '.16em', color: 'rgba(255,255,255,.62)' }); label(label2, { right: '104px', top: '56px', fontSize: '13px', letterSpacing: '.16em', color: 'rgba(255,255,255,.36)' }); }
 const T = (s, css, p = stage) => txt(s, { whiteSpace: 'normal', letterSpacing: '-.04em', ...css }, p);
 const L = (s, css, p = stage) => label(s, { fontSize: '14px', letterSpacing: '.14em', color: 'rgba(255,255,255,.55)', ...css }, p);
@@ -79,4 +79,11 @@ const FRAMES = {
       el('div', { position: 'absolute', left: (104 + 1712 * p - 9) + 'px', top: (y - 8) + 'px', width: '18px', height: '18px', borderRadius: '50%', background: i === 3 ? '#fff' : S[1], boxShadow: i === 3 ? `0 0 24px ${S[2]}` : 'none' });
       L(k, { left: x + 'px', top: (y + 40) + 'px', color: i === 3 ? S[2] : 'rgba(255,255,255,.5)', textAlign: i === 3 ? 'right' : 'left', width: '360px' }); T(n, { left: x + 'px', top: (y + 70) + 'px', fontSize: '96px', width: '360px', textAlign: i === 3 ? 'right' : 'left' }); L(l, { left: x + 'px', top: (y + 180) + 'px', width: '360px', whiteSpace: 'normal', textAlign: i === 3 ? 'right' : 'left', lineHeight: '22px' }); }); },
 };
-async function STYLE(n) { FRAMES[n](); }
+async function STYLE(n) { FRAMES[n]();
+  if (!window.FAST) return;
+  // fast version: every element arrives out of a blur on a spring, in reading order, then holds
+  const els = [...stage.children].filter(e => !e.dataset.bg && e.style.zIndex !== '48' && e.style.zIndex !== '49');
+  els.sort((a, b) => (parseFloat(a.style.top) || 0) - (parseFloat(b.style.top) || 0) || (parseFloat(a.style.left) || 0) - (parseFloat(b.style.left) || 0));
+  tl.from(els, { opacity: 0, y: 28, scale: .96, filter: 'blur(14px)', duration: .85, ease: 'reveal', stagger: { amount: .6 } }, .1);
+  stage.querySelectorAll('.cw, svg path').forEach(() => {});
+}
