@@ -129,11 +129,17 @@ try: S.cycles.denoiser = 'OPENIMAGEDENOISE'
 except Exception: pass
 S.cycles.device = 'GPU' if A.gpu else 'CPU'
 if A.gpu:
-    pr = bpy.context.preferences.addons['cycles'].preferences
+    pr = bpy.context.preferences.addons['cycles'].preferences; chosen = None
     for t in ('OPTIX', 'CUDA'):
-        try: pr.compute_device_type = t; pr.get_devices(); break
-        except Exception: pass
-    for d in pr.devices: d.use = True
+        try:
+            pr.compute_device_type = t; pr.refresh_devices() if hasattr(pr, 'refresh_devices') else pr.get_devices()
+            devs = [d for d in pr.devices if d.type == t]
+            if devs:
+                for d in pr.devices: d.use = (d.type == t)
+                chosen = t; break
+        except Exception as e: print('GPU type failed', t, e)
+    print('CYCLES_DEVICE', chosen, [(d.name, d.type, d.use) for d in pr.devices], flush=True)
+    if not chosen: S.cycles.device = 'CPU'
 S.cycles.max_bounces = 10; S.cycles.glossy_bounces = 6; S.cycles.use_adaptive_sampling = True
 w_, h_ = map(int, A.res.split('x')); S.render.resolution_x, S.render.resolution_y = w_, h_
 try: S.view_settings.view_transform = 'AgX'; S.view_settings.look = 'AgX - Medium High Contrast' if not WHITE else 'AgX - Base Contrast'
