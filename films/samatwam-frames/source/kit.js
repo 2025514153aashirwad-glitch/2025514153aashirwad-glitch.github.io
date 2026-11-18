@@ -1,13 +1,11 @@
-// Samatwam Frames · Liquid Night kit. Everything on screen is drawn by code: type, vectors, shaders, procedural noise.
+// Samatwam Frames · Glass & Metal kit. Real Mixkit footage under premium product UI: liquid glass, brushed metal, kinetic type, animated widgets.
 const W = 1920, H = 1080, FPS = 30, DUR = 5;
-const C = { night: '#0A0B0E', navy: '#13213D', blue: '#1F3A7A', saff: '#D9822B', lsaff: '#F2B766', gold: '#B08D3C', text: '#ECE8DF', dim: 'rgba(236,232,223,.62)', faint: 'rgba(236,232,223,.16)' };
+const C = { ink: '#0B1020', navy: '#13213D', saff: '#D9822B', lsaff: '#F2B766', gold: '#B08D3C', white: '#FFFFFF', text: '#F5F3EE', soft: 'rgba(255,255,255,.72)', mute: 'rgba(255,255,255,.55)', ok: '#7FD39B' };
 gsap.registerPlugin(SplitText, DrawSVGPlugin, ScrambleTextPlugin, CustomEase, MotionPathPlugin);
-// custom curves, written for this series
 CustomEase.create('reveal', 'M0,0 C0.12,0.7 0.2,1 1,1');
-CustomEase.create('glide', 'M0,0 C0.55,0 0.15,1 1,1');
-CustomEase.create('snap', 'M0,0 C0.18,0 0.22,1.16 0.5,1.05 C0.68,0.97 0.8,1 1,1');
-CustomEase.create('settle', 'M0,0 C0.3,0.9 0.45,1.02 0.62,1.01 C0.8,1 0.9,1 1,1');
-CustomEase.create('press', 'M0,0 C0.5,0 0.7,0.6 0.8,1.04 C0.88,0.98 0.94,1 1,1');
+CustomEase.create('glide', 'M0,0 C0.6,0 0.12,1 1,1');
+CustomEase.create('snap', 'M0,0 C0.2,0 0.24,1.14 0.52,1.04 C0.7,0.97 0.82,1 1,1');
+CustomEase.create('exit', 'M0,0 C0.5,0 0.85,0.4 1,1');
 const stage = document.getElementById('stage');
 const tl = gsap.timeline({ paused: true });
 const perFrame = [];
@@ -16,105 +14,112 @@ const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
 const lerp = (a, b, k) => a + (b - a) * k;
 const ss = (a, b, v) => { const x = clamp((v - a) / (b - a)); return x * x * (3 - 2 * x); };
 function el(tag, css = {}, parent = stage, html = '') { const e = document.createElement(tag); Object.assign(e.style, css); if (html) e.innerHTML = html; parent.appendChild(e); return e; }
-function svgEl(parent, css = {}, inner = '', w = W, h = H) { const d = el('div', { position: 'absolute', left: 0, top: 0, ...css }, parent, `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" fill="none" xmlns="http://www.w3.org/2000/svg">${inner}</svg>`); return d.querySelector('svg'); }
-function rng(seed) { return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
-const mono = (s, css = {}, p = stage) => el('div', { position: 'absolute', fontFamily: 'JBM', fontSize: '13px', letterSpacing: '.12em', textTransform: 'uppercase', color: C.dim, whiteSpace: 'nowrap', ...css }, p, s);
-const disp = (s, css = {}, p = stage) => el('div', { position: 'absolute', fontFamily: 'SG', fontWeight: 500, color: C.text, whiteSpace: 'nowrap', letterSpacing: '-.02em', ...css }, p, s);
-const hex3 = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16) / 255);
-// 2D value noise for canvas work
-const vn = (() => { const P = new Uint8Array(512), r = rng(7); const p = [...Array(256).keys()].sort(() => r() - .5); for (let i = 0; i < 512; i++) P[i] = p[i & 255];
-  const g = (ix, iy) => P[P[ix & 255] + (iy & 255)] / 255; const f = t => t * t * (3 - 2 * t);
-  return (x, y) => { const ix = Math.floor(x), iy = Math.floor(y), fx = f(x - ix), fy = f(y - iy); return lerp(lerp(g(ix, iy), g(ix + 1, iy), fx), lerp(g(ix, iy + 1), g(ix + 1, iy + 1), fx), fy); }; })();
+function svgIn(parent, w, h, inner, css = {}) { const d = el('div', { position: 'absolute', left: 0, top: 0, width: w + 'px', height: h + 'px', ...css }, parent, `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" fill="none" xmlns="http://www.w3.org/2000/svg">${inner}</svg>`); return d.querySelector('svg'); }
+const box = (l, t, w, h) => ({ left: l + 'px', top: t + 'px', width: w + 'px', height: h + 'px' });
+const mono = (s, css = {}, p = stage) => el('div', { position: 'absolute', fontFamily: 'JBM', fontSize: '13px', letterSpacing: '.14em', textTransform: 'uppercase', color: C.soft, whiteSpace: 'nowrap', ...css }, p, s);
+const txt = (s, css = {}, p = stage) => el('div', { position: 'absolute', fontFamily: 'SG', fontWeight: 500, color: C.text, whiteSpace: 'nowrap', letterSpacing: '-.02em', ...css }, p, s);
 
-// ---------------------------------------------------------------- LiquidField: domain-warped fBm, one loop per 5 s
-const VS = 'attribute vec2 p;void main(){gl_Position=vec4(p,0.,1.);}';
-const FS = `precision highp float;uniform vec2 R;uniform float T,S,D,K,SD;uniform vec3 c0,c1,c2,c3,SP;
-float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
-float n(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(h(i),h(i+vec2(1,0)),f.x),mix(h(i+vec2(0,1)),h(i+vec2(1,1)),f.x),f.y);}
-float fbm(vec2 p){float v=0.,a=.5;mat2 m=mat2(1.6,1.2,-1.2,1.6);for(int i=0;i<5;i++){v+=a*n(p);p=m*p;a*=.5;}return v;}
-void main(){vec2 uv=gl_FragCoord.xy/R;vec2 p=(uv-.5)*vec2(R.x/R.y,1.)*K+vec2(SD,SD*.7);
-float a=6.2831853*T/5.;vec2 lo=vec2(cos(a),sin(a))*.3;
-vec2 q=vec2(fbm(p+lo),fbm(p+vec2(5.2,1.3)-lo));
-vec2 r=vec2(fbm(p+2.6*q+vec2(1.7,9.2)),fbm(p+2.6*q+vec2(8.3,2.8)+lo));
-float v=fbm(p+2.6*r);
-float s=S;if(SP.z>0.){s=clamp(.5+dot(uv-.5,normalize(SP.xy))*SP.z,0.,1.);}
-float w=v+(s-.5)*.55;
-vec3 col=mix(c0,c1,smoothstep(.18,.55,v));
-col=mix(col,c2,smoothstep(.5,.78,w)*clamp(s*1.2,0.,1.));
-col=mix(col,c3,smoothstep(.74,.95,w)*s);
-col+=(r.x-.5)*.06;
-gl_FragColor=vec4(col*D,1.);}`;
-function liquid(parent = stage, o = {}) {
-  const w = o.w || W, h = o.h || H, res = o.res || .33;
-  const cv = el('canvas', { position: 'absolute', left: (o.x || 0) + 'px', top: (o.y || 0) + 'px', width: w + 'px', height: h + 'px', ...(o.css || {}) }, parent);
-  cv.width = Math.round(w * res); cv.height = Math.round(h * res);
-  const gl = cv.getContext('webgl', { preserveDrawingBuffer: true });
-  const sh = (t, s) => { const x = gl.createShader(t); gl.shaderSource(x, s); gl.compileShader(x); if (!gl.getShaderParameter(x, gl.COMPILE_STATUS)) throw gl.getShaderInfoLog(x); return x; };
-  const pr = gl.createProgram(); gl.attachShader(pr, sh(gl.VERTEX_SHADER, VS)); gl.attachShader(pr, sh(gl.FRAGMENT_SHADER, FS)); gl.linkProgram(pr); gl.useProgram(pr);
-  gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer()); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
-  const loc = gl.getAttribLocation(pr, 'p'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
-  const U = n => gl.getUniformLocation(pr, n);
-  (o.cols || [C.night, C.navy, C.saff, C.lsaff]).forEach((c, i) => gl.uniform3fv(U('c' + i), hex3(c)));
-  const u = { sat: o.sat ?? .5, dim: o.dim ?? 1, k: o.k ?? 1.6, sd: o.seed || 0, split: o.split || [0, 0, 0] };
-  const L = { cv, u, draw(t) { gl.viewport(0, 0, cv.width, cv.height); gl.uniform2f(U('R'), cv.width, cv.height); gl.uniform1f(U('T'), t); gl.uniform1f(U('S'), u.sat); gl.uniform1f(U('D'), u.dim); gl.uniform1f(U('K'), u.k); gl.uniform1f(U('SD'), u.sd); gl.uniform3fv(U('SP'), u.split); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); } };
-  perFrame.push((f, t) => L.draw(t)); return L;
+// ---------------------------------------------------------------- footage: a real clip as a frame sequence, graded, with a slow camera move
+function foot(id, o = {}) {
+  const wrap = el('div', { position: 'absolute', overflow: 'hidden', ...(o.box || { left: 0, top: 0, width: W + 'px', height: H + 'px' }), borderRadius: (o.r || 0) + 'px', zIndex: o.z || 0, ...(o.css || {}) }, o.parent || stage);
+  const img = el('img', { position: 'absolute', left: 0, top: 0, width: '100%', height: '100%', objectFit: 'cover', filter: o.grade || 'saturate(.9) contrast(1.06) brightness(.86)', transformOrigin: o.origin || '50% 50%' }, wrap);
+  const tint = el('div', { position: 'absolute', inset: 0, background: o.tint || 'linear-gradient(180deg, rgba(11,16,32,.10) 0%, rgba(11,16,32,.0) 40%, rgba(11,16,32,.55) 100%)' }, wrap);
+  const z = o.zoom || [1.08, 1.0]; tl.fromTo(img, { scale: z[0] }, { scale: z[1], duration: DUR, ease: 'none' }, 0);
+  if (o.pan) tl.fromTo(img, { x: o.pan[0] }, { x: o.pan[1], duration: DUR, ease: 'none' }, 0);
+  const off = o.off || 0, rate = o.rate || 1;
+  perFrame.push(async (f) => { const k = clamp(Math.round(off * 30 + f * rate) + 1, 1, 150); const src = `../shared/footage/${id}/${String(k).padStart(4, '0')}.jpg`; if (img.dataset.k !== src) { img.src = src; img.dataset.k = src; try { await img.decode(); } catch (e) {} } });
+  wrap.img = img; wrap.tint = tint; return wrap;
 }
 
-// ---------------------------------------------------------------- LiquidGlass panel and GlassButton
+// ---------------------------------------------------------------- liquid glass: real backdrop blur, thick rim, specular, chromatic edge
 function glass(css = {}, parent = stage, html = '', o = {}) {
-  const f = o.fill ?? .07;
-  const g = el('div', { position: 'absolute', boxSizing: 'border-box', borderRadius: (o.r ?? 28) + 'px', color: C.text,
-    background: `linear-gradient(180deg, rgba(255,255,255,${o.top ?? .17}) 0%, rgba(255,255,255,${f}) 34%, rgba(255,255,255,${f * .55}) 100%)`,
-    backdropFilter: `blur(${o.blur ?? 22}px) saturate(1.4)`, webkitBackdropFilter: `blur(${o.blur ?? 22}px) saturate(1.4)`,
-    border: '1px solid rgba(255,255,255,.28)',
-    boxShadow: 'inset 0 1px 0 rgba(255,255,255,.55), inset 0 -1px 0 rgba(255,255,255,.08), inset 0 -22px 44px rgba(0,0,0,.26), inset 14px 0 30px -18px rgba(255,255,255,.18), 0 28px 60px rgba(0,0,0,.42)',
-    overflow: 'hidden', ...css }, parent, html);
-  el('div', { position: 'absolute', left: '6%', right: '6%', top: '1px', height: '38%', borderRadius: 'inherit', background: 'linear-gradient(180deg, rgba(255,255,255,.16), rgba(255,255,255,0))', pointerEvents: 'none' }, g);
+  const r = o.r ?? 28;
+  const g = el('div', { position: 'absolute', boxSizing: 'border-box', borderRadius: r + 'px', color: C.text, overflow: 'hidden',
+    background: `linear-gradient(135deg, rgba(255,255,255,${o.a ?? .2}) 0%, rgba(255,255,255,${(o.a ?? .2) * .45}) 45%, rgba(255,255,255,${(o.a ?? .2) * .7}) 100%)`,
+    backdropFilter: `blur(${o.blur ?? 28}px) saturate(1.8) brightness(${o.br ?? 1.05})`, webkitBackdropFilter: `blur(${o.blur ?? 28}px) saturate(1.8)`,
+    border: '1px solid rgba(255,255,255,.5)',
+    boxShadow: 'inset 0 1.5px 0 rgba(255,255,255,.85), inset 1.5px 0 0 rgba(255,255,255,.35), inset 0 -1px 0 rgba(255,255,255,.25), inset 3px 3px 0 -2px rgba(242,183,102,.35), inset -3px -3px 0 -2px rgba(140,180,255,.35), inset 0 -24px 40px -20px rgba(11,16,32,.25), 0 24px 60px rgba(11,16,32,.35), 0 2px 6px rgba(11,16,32,.2)',
+    ...css }, parent, html);
+  el('div', { position: 'absolute', left: 0, top: 0, right: 0, height: '55%', borderRadius: `${r}px ${r}px 0 0`, background: 'radial-gradient(120% 100% at 30% 0%, rgba(255,255,255,.32), rgba(255,255,255,0) 60%)', pointerEvents: 'none' }, g);
   return g;
 }
-function pill(label, css = {}, parent = stage, o = {}) { return glass({ height: '64px', padding: '0 30px', display: 'flex', alignItems: 'center', gap: '12px', fontFamily: 'SG', fontWeight: 500, fontSize: '24px', whiteSpace: 'nowrap', ...css }, parent, label, { r: 32, ...o }); }
+// a glass pill button; glow = the saffron under-light from the reference board
+function pill(label, css = {}, parent = stage, o = {}) {
+  const p = glass({ height: (o.h || 60) + 'px', padding: `0 ${o.pad || 28}px`, display: 'flex', alignItems: 'center', gap: '12px', fontFamily: 'SG', fontWeight: 500, fontSize: (o.fs || 22) + 'px', whiteSpace: 'nowrap', ...css }, parent, `<span style="position:relative;z-index:2;display:flex;align-items:center;gap:12px">${label}</span>`, { r: (o.h || 60) / 2, a: o.a ?? .18 });
+  if (o.glow) p.style.boxShadow += `, 0 0 0 1px rgba(242,183,102,.6), 0 0 40px rgba(242,183,102,.55)`;
+  return p;
+}
+// brushed metal: silver by default, gold only for proven or held work
+const METAL = { silver: ['#F7F8FA', '#C9CDD3', '#EEF0F2', '#9EA4AC'], gold: ['#F6E7BF', '#B08D3C', '#E9D49A', '#8A6A26'], dark: ['#5A616C', '#2A2F38', '#474E59', '#1B1F26'] };
+function metalBg(kind = 'silver', angle = 180) { const m = METAL[kind]; return `repeating-linear-gradient(90deg, rgba(255,255,255,.07) 0 1px, rgba(0,0,0,.035) 1px 2px), linear-gradient(${angle}deg, ${m[0]} 0%, ${m[1]} 46%, ${m[2]} 54%, ${m[3]} 100%)`; }
+function metal(css = {}, parent = stage, html = '', kind = 'silver') { return el('div', { position: 'absolute', boxSizing: 'border-box', background: metalBg(kind), border: '1px solid rgba(255,255,255,.7)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.95), inset 0 -2px 3px rgba(0,0,0,.25), 0 8px 18px rgba(11,16,32,.35)', color: kind === 'dark' ? C.text : C.ink, ...css }, parent, html); }
+const chromeText = (kind = 'silver') => ({ background: `linear-gradient(180deg, ${METAL[kind][0]} 10%, ${METAL[kind][1]} 52%, ${METAL[kind][2]} 60%, ${METAL[kind][3]} 100%)`, webkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' });
 
-// ---------------------------------------------------------------- finishing: notched frame, title, scrim, grain, vignette
+// ---------------------------------------------------------------- kinetic type
+function head(html, o = {}) {
+  const e = txt(html, { left: (o.l ?? 120) + 'px', top: (o.t ?? 160) + 'px', fontSize: (o.s || 96) + 'px', lineHeight: Math.round((o.s || 96) * 1.02) + 'px', letterSpacing: '-.04em', whiteSpace: 'normal', width: (o.w || 1000) + 'px', zIndex: o.z || 10, textShadow: '0 2px 30px rgba(11,16,32,.35)', ...(o.css || {}) }, o.parent || stage);
+  const sp = SplitText.create(e, { type: 'lines,words,chars', mask: 'lines' });
+  const at = o.at ?? .2, mode = o.mode || 'rise';
+  if (mode === 'rise') tl.from(sp.chars, { yPercent: 120, duration: .9, ease: 'reveal', stagger: .016 }, at);
+  if (mode === 'blur') tl.from(sp.chars, { opacity: 0, filter: 'blur(14px)', y: 24, duration: .8, ease: 'reveal', stagger: .02 }, at);
+  if (mode === 'lines') tl.from(sp.lines, { yPercent: 110, duration: 1, ease: 'reveal', stagger: .1 }, at);
+  if (o.out != null) tl.to(sp.chars, { yPercent: -120, duration: .5, ease: 'exit', stagger: .008 }, o.out);
+  e.sp = sp; return e;
+}
+function kicker(s, o = {}) { const k = pill(`<span style="width:7px;height:7px;border-radius:50%;background:${C.saff};box-shadow:0 0 10px ${C.saff}"></span><span style="font-family:JBM;font-size:12px;letter-spacing:.16em;text-transform:uppercase">${s}</span>`, { left: (o.l ?? 120) + 'px', top: (o.t ?? 100) + 'px', zIndex: 11 }, o.parent || stage, { h: 40, pad: 16, a: .14 });
+  tl.from(k, { opacity: 0, y: -10, duration: .6, ease: 'reveal' }, o.at ?? .1); if (o.out != null) tl.to(k, { opacity: 0, y: -10, duration: .4 }, o.out); return k; }
+function count(node, to, at, dur = 1.2, fmt = v => Math.round(v).toLocaleString('en-IN'), from = 0) { const o = { v: from }; tl.to(o, { v: to, duration: dur, ease: 'glide' }, at); perFrame.push(() => { node.textContent = fmt(o.v); }); return o; }
+function typer(node, s, at, dur) { const o = { n: 0 }; tl.to(o, { n: s.length, duration: dur, ease: 'none' }, at); perFrame.push(() => { node.textContent = s.slice(0, Math.round(o.n)); }); }
+
+// ---------------------------------------------------------------- transitions
+// glass wipe: the next layer is revealed behind a moving slab of liquid glass
+function glassWipe(layer, at, dur = .9) {
+  layer.style.clipPath = 'inset(0 0 0 100%)';
+  const slab = el('div', { position: 'absolute', top: 0, left: W + 'px', width: '160px', height: H + 'px', zIndex: (+layer.style.zIndex || 0) + 1, backdropFilter: 'blur(18px) saturate(1.9) brightness(1.12)', webkitBackdropFilter: 'blur(18px) saturate(1.9)', background: 'linear-gradient(90deg, rgba(255,255,255,.28), rgba(255,255,255,.06) 40%, rgba(255,255,255,.18))', borderLeft: '1px solid rgba(255,255,255,.8)', borderRight: '1px solid rgba(255,255,255,.4)', boxShadow: '0 0 60px rgba(11,16,32,.35)' });
+  const p = { v: 0 }; tl.to(p, { v: 1, duration: dur, ease: 'glide' }, at);
+  perFrame.push(() => { const x = lerp(W + 20, -180, p.v); slab.style.left = x + 'px'; layer.style.clipPath = `inset(0 0 0 ${clamp(x + 80, 0, W)}px)`; slab.style.opacity = p.v > 0 && p.v < 1 ? 1 : 0; });
+}
+function iris(layer, at, cx = 960, cy = 540, dur = 1) { const p = { r: 0 }; layer.style.clipPath = `circle(0px at ${cx}px ${cy}px)`; tl.to(p, { r: 1300, duration: dur, ease: 'glide' }, at); perFrame.push(() => { layer.style.clipPath = `circle(${p.r}px at ${cx}px ${cy}px)`; }); }
+
+// ---------------------------------------------------------------- widgets
+function ring(parent, o) { const r = o.r || 54, sw = o.sw || 10, sz = (r + sw) * 2;
+  const s = svgIn(parent, sz, sz, `<defs><linearGradient id="rg${o.id}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${C.lsaff}"/><stop offset="1" stop-color="${C.saff}"/></linearGradient></defs><circle cx="${sz / 2}" cy="${sz / 2}" r="${r}" stroke="rgba(255,255,255,.18)" stroke-width="${sw}"/><circle class="rv" cx="${sz / 2}" cy="${sz / 2}" r="${r}" stroke="url(#rg${o.id})" stroke-width="${sw}" stroke-linecap="round" transform="rotate(-90 ${sz / 2} ${sz / 2})"/>`, { left: o.x + 'px', top: o.y + 'px' });
+  tl.fromTo(s.querySelector('.rv'), { drawSVG: '0%' }, { drawSVG: `${o.val}%`, duration: 1.3, ease: 'glide' }, o.at); return s; }
+function spark(parent, o) { const pts = o.pts, w = o.w, h = o.h, mx = Math.max(...pts), mn = Math.min(...pts); const P = pts.map((v, i) => [i / (pts.length - 1) * w, h - (v - mn) / ((mx - mn) || 1) * h * .9 - 4]);
+  const d = 'M' + P.map(p => p.map(v => v.toFixed(1)).join(' ')).join(' L');
+  const s = svgIn(parent, w + 10, h + 10, `<defs><linearGradient id="sa${o.id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${o.c || C.lsaff}" stop-opacity=".35"/><stop offset="1" stop-color="${o.c || C.lsaff}" stop-opacity="0"/></linearGradient></defs><path class="ar" d="${d} L${w} ${h} L0 ${h}Z" fill="url(#sa${o.id})"/><path class="ln" d="${d}" stroke="${o.c || C.lsaff}" stroke-width="${o.sw || 3}" stroke-linecap="round" stroke-linejoin="round"/><circle class="ed" cx="${P[P.length - 1][0]}" cy="${P[P.length - 1][1]}" r="6" fill="${C.white}" stroke="${o.c || C.saff}" stroke-width="3"/>`, { left: o.x + 'px', top: o.y + 'px' });
+  tl.from(s.querySelector('.ln'), { drawSVG: 0, duration: 1.2, ease: 'glide' }, o.at).from(s.querySelector('.ar'), { opacity: 0, duration: .8 }, o.at + .5).from(s.querySelector('.ed'), { scale: 0, transformOrigin: '50% 50%', duration: .4, ease: 'snap' }, o.at + 1.1); return s; }
+function gridLines(parent, w, h, n = 4) { return svgIn(parent, w, h, [...Array(n + 1)].map((_, i) => `<path d="M0 ${(i / n * h).toFixed(1)} H${w}" stroke="rgba(255,255,255,.14)" stroke-dasharray="${i === n ? '0' : '3 5'}"/>`).join('')); }
+function check(on = true) { return `<span style="display:inline-flex;width:22px;height:22px;border-radius:50%;align-items:center;justify-content:center;background:${on ? C.saff : 'rgba(255,255,255,.12)'};border:1px solid rgba(255,255,255,.5);box-shadow:${on ? '0 0 14px rgba(217,130,43,.6)' : 'none'}"><svg width="12" height="12" viewBox="0 0 12 12"><path d="M2.5 6.2l2.3 2.3L9.6 3.6" fill="none" stroke="${on ? '#fff' : 'rgba(255,255,255,.4)'}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>`; }
+
+// ---------------------------------------------------------------- finishing: UI chrome, title card, grain
 let TITLE = null, ILLUS = false;
-function title(html, kicker) { TITLE = { html, kicker }; }
+function title(html, kick) { TITLE = { html, kick }; }
 function illustrative() { ILLUS = true; }
 function finish(n) {
-  const scrim = el('div', { ...full, background: 'linear-gradient(0deg, rgba(10,11,14,.82) 0%, rgba(10,11,14,.5) 20%, rgba(10,11,14,0) 38%)', zIndex: 38, pointerEvents: 'none' });
-  tl.from(scrim, { opacity: 0, duration: .8, ease: 'glide' }, 3.4);
-  if (TITLE) {
-    const box = el('div', { position: 'absolute', left: '120px', bottom: '104px', zIndex: 45, width: '1340px' });
-    const k = mono(TITLE.kicker || '', { position: 'relative', color: C.lsaff, marginBottom: '16px' }, box);
-    const h = disp(TITLE.html, { position: 'relative', fontSize: '60px', lineHeight: '68px', whiteSpace: 'normal', letterSpacing: '-.025em' }, box);
-    const sp = SplitText.create(h, { type: 'lines', mask: 'lines' });
-    tl.from(k, { opacity: 0, x: -14, duration: .6, ease: 'reveal' }, 3.62).from(sp.lines, { yPercent: 112, duration: .95, ease: 'reveal', stagger: .09 }, 3.66);
-  }
-  if (ILLUS) { const t = mono('Illustrative', { right: '110px', top: '118px', fontSize: '11px', padding: '6px 10px', border: '1px solid rgba(242,183,102,.45)', borderRadius: '6px', color: C.lsaff, zIndex: 46 }); tl.from(t, { opacity: 0, duration: .5 }, .6); }
-  // notched bezel: everything outside is night; saffron hairlines and node dots in the corners; three-dot side rail
   const NN = String(n).padStart(2, '0');
-  const bez = 'M64 40 H760 Q776 40 784 54 L800 82 Q808 96 824 96 H1096 Q1112 96 1120 82 L1136 54 Q1144 40 1160 40 H1856 Q1880 40 1880 64 V1016 Q1880 1040 1856 1040 H64 Q40 1040 40 1016 V64 Q40 40 64 40Z';
-  const corner = (d, a, b) => `<path class="cn" d="${d}" stroke="${C.saff}" stroke-width="1.2" opacity=".9"/><circle class="cd" cx="${a[0]}" cy="${a[1]}" r="2.6" fill="${C.saff}"/><circle class="cd" cx="${b[0]}" cy="${b[1]}" r="2.6" fill="${C.saff}"/>`;
-  const s = svgEl(stage, { zIndex: 40, pointerEvents: 'none' }, `
-    <path d="M0 0H1920V1080H0Z ${bez}" fill="${C.night}" fill-rule="evenodd"/>
-    <path class="bz" d="${bez}" stroke="rgba(236,232,223,.22)" stroke-width="1"/>
-    ${corner('M40 150 V64 Q40 40 64 40 H170', [40, 150], [170, 40])}
-    ${corner('M1750 40 H1856 Q1880 40 1880 64 V150', [1750, 40], [1880, 150])}
-    ${corner('M40 930 V1016 Q40 1040 64 1040 H170', [40, 930], [170, 1040])}
-    ${corner('M1750 1040 H1856 Q1880 1040 1880 1016 V930', [1750, 1040], [1880, 930])}
-    ${[0, 1, 2].map(i => `<circle class="rail" cx="1854" cy="${500 + i * 40}" r="4" stroke="rgba(236,232,223,.5)" stroke-width="1"/>`).join('')}`);
-  const lab = mono(`Samatwam · Frames · ${NN} / 18`, { left: '800px', width: '320px', top: '58px', textAlign: 'center', fontSize: '12px', color: C.text, zIndex: 41 });
-  tl.from(s.querySelector('.bz'), { drawSVG: '50% 50%', duration: 1, ease: 'glide' }, 0).from(s.querySelectorAll('.cn'), { drawSVG: 0, duration: .8, ease: 'reveal' }, .2)
-    .from(s.querySelectorAll('.cd'), { scale: 0, transformOrigin: '50% 50%', duration: .4, ease: 'snap' }, .7).from(lab, { opacity: 0, duration: .6 }, .3);
-  const rails = s.querySelectorAll('.rail');
-  perFrame.push(f => rails.forEach((r, i) => r.setAttribute('fill', (f < 30 ? 0 : f < 110 ? 1 : 2) === i ? C.saff : 'none')));
-  // vignette 6% and seeded grain 3%
-  el('div', { ...full, zIndex: 48, pointerEvents: 'none', background: 'radial-gradient(ellipse at 50% 46%, rgba(0,0,0,0) 55%, rgba(0,0,0,.34) 100%)' });
-  const gr = el('div', { ...full, zIndex: 49, pointerEvents: 'none', opacity: .07, mixBlendMode: 'overlay' }, stage, `<svg width="${W}" height="${H}"><filter id="gn"><feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="2" seed="1"/><feColorMatrix type="saturate" values="0"/></filter><rect width="100%" height="100%" filter="url(#gn)"/></svg>`);
+  const nav = pill(`<span style="font-family:JBM;font-size:12px;letter-spacing:.18em">SAMATWAM</span><span style="width:1px;height:16px;background:rgba(255,255,255,.4)"></span><span style="font-family:JBM;font-size:12px;letter-spacing:.14em;color:rgba(255,255,255,.75)">FRAMES · ${NN} / 18</span>`, { left: '50%', top: '36px', transform: 'translateX(-50%)', zIndex: 40 }, stage, { h: 44, pad: 20, a: .14 });
+  tl.from(nav, { opacity: 0, y: -16, duration: .7, ease: 'reveal' }, .05);
+  // scrubber: a product-UI progress line with three phase marks
+  const sc = el('div', { position: 'absolute', left: '120px', right: '120px', bottom: '44px', height: '2px', background: 'rgba(255,255,255,.22)', zIndex: 40, borderRadius: '1px' });
+  const fill = el('div', { width: '0%', height: '100%', background: `linear-gradient(90deg, ${C.lsaff}, ${C.saff})`, boxShadow: `0 0 10px ${C.saff}`, borderRadius: '1px' }, sc);
+  [30, 110].forEach(f => el('div', { position: 'absolute', left: (f / 150 * 100) + '%', top: '-4px', width: '1px', height: '10px', background: 'rgba(255,255,255,.55)' }, sc));
+  perFrame.push(f => { fill.style.width = ((f + 1) / 150 * 100) + '%'; });
+  if (ILLUS) { const t = pill('<span style="font-family:JBM;font-size:11px;letter-spacing:.16em">ILLUSTRATIVE</span>', { right: '120px', top: '38px', zIndex: 40 }, stage, { h: 40, pad: 16, a: .12 }); tl.from(t, { opacity: 0, duration: .5 }, .3); }
+  if (TITLE) {
+    const card = glass({ left: '96px', bottom: '84px', padding: '26px 34px 28px', zIndex: 30, maxWidth: '1180px' }, stage, '', { r: 30, a: .16 });
+    const k = mono(TITLE.kick, { position: 'relative', color: C.lsaff, marginBottom: '10px', zIndex: 2 }, card);
+    const h = txt(TITLE.html, { position: 'relative', fontSize: '58px', lineHeight: '64px', whiteSpace: 'normal', letterSpacing: '-.035em', zIndex: 2 }, card);
+    const sp = SplitText.create(h, { type: 'lines,words', mask: 'lines' });
+    tl.from(card, { y: 60, opacity: 0, scale: .96, transformOrigin: '0 100%', duration: .9, ease: 'reveal' }, 3.5).from(k, { opacity: 0, duration: .5 }, 3.7).from(sp.words, { yPercent: 110, duration: .8, ease: 'reveal', stagger: .035 }, 3.65);
+  }
+  el('div', { ...full, zIndex: 48, pointerEvents: 'none', background: 'radial-gradient(ellipse at 50% 45%, rgba(0,0,0,0) 60%, rgba(0,0,0,.28) 100%)' });
+  const gr = el('div', { ...full, zIndex: 49, pointerEvents: 'none', opacity: .06, mixBlendMode: 'overlay' }, stage, `<svg width="${W}" height="${H}"><filter id="gn"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" seed="1"/><feColorMatrix type="saturate" values="0"/></filter><rect width="100%" height="100%" filter="url(#gn)"/></svg>`);
   const tb = gr.querySelector('feTurbulence'); perFrame.push(f => tb.setAttribute('seed', String(f % 23 + 1)));
 }
 
-// ---------------------------------------------------------------- frame control for the recorder
 window.DUR = DUR; window.EV = [];
 const raf = () => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
 const ready = (async () => { for (const f of ['500 60px SG', '400 24px SG', 'italic 400 60px PF', '13px JBM']) await document.fonts.load(f); await FR[window.FRAME](); finish(window.FRAME); })();
-window.render = async function (t) { await ready; const f = Math.min(Math.round(t * FPS), DUR * FPS - 1); tl.seek(t, false); for (const fn of perFrame) fn(f, t); await raf(); };
+window.render = async function (t) { await ready; const f = Math.min(Math.round(t * FPS), DUR * FPS - 1); tl.seek(t, false); await Promise.all(perFrame.map(fn => fn(f, t))); await raf(); };
 window.READY = true;

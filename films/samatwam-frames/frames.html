@@ -57,27 +57,28 @@ ul.qs b { color: var(--text); font-weight: 500; }
 
 <div class="wrap">
   <header>
-    <div class="label">Samatwam · Frames · Liquid Night · 18 clips × 5 seconds</div>
-    <h1>Eighteen angles, <i>one</i> night.</h1>
-    <p class="lede">Each clip explains one side of Samatwam that the launch film does not cover, in its own visual style. All of them share one system: liquid gradients, glass panels and fine hairlines on deep night, one saffron accent, and gold only where work is proven. Every pixel is drawn by code. There are no photos and no generated images. Mark each clip, score its fit, and leave notes. Your marks save as you go.</p>
+    <div class="label">Samatwam · Frames · Glass &amp; Metal · 18 clips × 5 seconds</div>
+    <h1>Eighteen angles, <i>one</i> interface.</h1>
+    <p class="lede">Each clip explains one side of Samatwam that the launch film does not cover. Real footage carries every shot; over it, Samatwam speaks as a premium product interface: liquid-glass panels, brushed-metal controls, live dashboard widgets and kinetic type, with glass wipes and iris cuts between shots. One saffron accent; gold only where work is proven. Mark each clip, score its fit, and leave notes. Your marks save as you go.</p>
     <div class="status" id="status">Connecting to your saved notes…</div>
   </header>
 
   <section aria-labelledby="dec-h">
     <h2 id="dec-h">How the prompt book was carried out</h2>
     <div class="decisions">
-      <div class="dec glass"><b>Same rules, a lighter engine</b><p>The book names Remotion. These clips use the same principle (code only, frame-exact, one command per clip) on the HTML, GSAP and WebGL route already working here, which renders on a cloud computer with no graphics card. The book still runs as written in Claude Code on a computer with a graphics card. Remotion is free for teams of up to 3 people.</p></div>
-      <div class="dec glass"><b>Glass, honestly</b><p>Panels have a 1 px rim, a specular top edge, an inner shadow and a real background blur of what sits behind them. True lens distortion (drei's transmission material) needs a graphics card, so it is not in these previews.</p></div>
-      <div class="dec glass"><b>Silent, 1080p</b><p>Sound is left out, as you asked earlier ("loose audio"). These are 1920 × 1080 web cuts. The 4K masters, the vertical 1080 × 1920 recomposes and the 90-second reel wait for your go (phase 7 of the book).</p></div>
-      <div class="dec glass"><b>Gold and honesty</b><p>Gold appears only in F09 (the proven line and its seal) and F17 (the final seal). Every clip that shows invented figures carries an ILLUSTRATIVE tag. No DPIIT or Startup India mark appears anywhere: their email limits logo use to the approved event.</p></div>
-      <div class="dec glass"><b>References as mood only</b><p>Your board (liquid UI, glass buttons, octagon portholes, HUD frames, keynote black) set the mood. No layout, photo, logo or text from those references is copied.</p></div>
-      <div class="dec glass"><b>Each clip ends on a hold</b><p>Frames 0–30 reveal, 30–110 move the idea, 110–150 hold on the title line, with custom easing curves throughout and a three-dot rail that tracks the phase.</p></div>
+      <div class="dec glass"><b>Footage first</b><p>Every clip runs on real, professionally shot Mixkit video (free for commercial use, no credit required): labs, workshops, classrooms, data centres, Bharat. Each shot is graded and moves slowly, so it reads as filmed rather than assembled.</p></div>
+      <div class="dec glass"><b>Liquid glass and metal</b><p>Panels blur and saturate the footage behind them, with a bright rim, a specular top and a faint saffron and blue edge where light bends. Controls, seals and step markers are brushed metal; gold is reserved for proven or held work (F09, F17).</p></div>
+      <div class="dec glass"><b>Type that moves with intent</b><p>Headlines rise letter by letter through masks and leave the same way before the next shot. Numbers count, claims type themselves, and each clip lands on a glass title card for the last 1.5 seconds.</p></div>
+      <div class="dec glass"><b>Transitions inside 5 seconds</b><p>Most clips carry two shots: a glass slab wipes from one to the next, an iris opens into the second shot, or a metal divider splits the frame. The idea then plays out as a working interface.</p></div>
+      <div class="dec glass"><b>Infographics as product UI</b><p>Steppers, bar comparisons, rings, live line charts, search bars, honeycombs and checklists, built like screens from a real product rather than slide charts.</p></div>
+      <div class="dec glass"><b>What the prompt book still asks for</b><p>Sound, the 4K masters, the vertical recomposes and the 90-second reel wait for your go. Footage replaces the book's no-stock rule, as you asked. No DPIIT or Startup India mark appears, per their email.</p></div>
     </div>
   </section>
 
   <section aria-labelledby="q-h">
     <h2 id="q-h">Names to confirm before the masters</h2>
     <ul class="qs">
+      <li><b>F03:</b> the six class names on the tiles (Build, Open Research, Simulation, Physical AI, Creative, Data) are my reading of the brochure; please confirm.</li>
       <li><b>F05:</b> the three tabs on each layer card (Learner, Builder, Researcher · Reviewer, Mentor, Steward · School, Industry, Government) are placeholders.</li>
       <li><b>F17:</b> the seven streams and six disciplines show as numerals (I–VII, 1–6) because their names are not in the book.</li>
       <li><b>F04, F09:</b> SAMT01/001 and OR-2027-0117 follow the book's examples; the claim lines are illustrative.</li>
@@ -89,29 +90,29 @@ ul.qs b { color: var(--text); font-weight: 500; }
     <h2 id="clips-h">The eighteen</h2>
     <div class="grid" id="grid"></div>
   </section>
-  <p class="foot">1920 × 1080, 30 fps, silent. Type: Space Grotesk, Playfair Display italic and JetBrains Mono (all SIL Open Font License). Motion: GSAP with SplitText, DrawSVG, ScrambleText, CustomEase (free licence). Voronoi panes: d3-delaunay (ISC). QR: qrcode (MIT).</p>
+  <p class="foot">1920 × 1080, 30 fps, silent. Footage: Mixkit free licence. Type: Space Grotesk, Playfair Display italic and JetBrains Mono (all SIL Open Font License). Motion: GSAP with SplitText, DrawSVG, ScrambleText, CustomEase (free licence). Voronoi panes: d3-delaunay (ISC). QR: qrcode (MIT).</p>
 </div>
 
 <script>
 const CLIPS = [
-  ['think', '01', 'To think is the real skill', 'Focus | Blur', 'Tool names drift past, soft and unreadable, on the navy side. DECIDE pulls from 40 px blur to sharp on the saffron side, with three glass droplets on the diagonal.'],
-  ['bandwidth', '02', 'The full bandwidth', 'Layered Panes', 'An idea travels through six glass panes and gains structure at each: scatter, contours, wireframe, ruled grid, interface card, recalibration. An arc closes the loop.'],
-  ['womb', '03', 'The womb', 'Flow field', 'Nine hundred flow lines bend into a membrane around six seeds (five hexagons, one octagon). Each seed grows new branches as the field touches it.'],
-  ['claim-card', '04', 'Claim card and SAMT ticket', 'Glass product', 'A glass card turns face-on over moving caustics. A real QR code, the address SAMT01/001 and a typed claim, then the flip to four stage pips with only Claimed lit.'],
-  ['interface-layers', '05', 'Three interface layers', 'Desktop flythrough', 'Three glass cards rise in turn: Individual grows shapes (Generative), Authority holds its gauges level (Sustainative), Institutional sends lines outward (Transmittive).'],
-  ['your-data', '06', 'Your AI, your data', 'Security x-ray', 'A project case with the learner’s own model plugged in reaches a glass scanner. Only three metric tags pass to the platform; the case returns untouched.'],
-  ['sim-arena', '07', 'Simulation Arena', 'Lidar survey', 'A scan plane reveals a robot cell as points. Three ghost runs of the arm work in parallel, then converge into one motion.'],
-  ['thought-to-part', '08', 'Thought to prototype', 'Precise mechanism', 'One pencil-weight line draws a gripper. The parts fill, extrude and snap together, then the jaws close on a part. Sketch, CAD, Sim, Prototype light in turn.'],
-  ['certified', '09', 'Certified creation', 'Gilded illumination', 'A dark vellum page draws its border from hexagons, octagons and the sun. One claim is proven, one is not yet tested, and gold runs only beside the proven line.'],
-  ['engineering-cases', '10', 'Engineering cases', 'Thermal, recoloured', 'A bracket under load in a night-to-saffron thermal ramp. A hotspot glows at the fillet; lattice infill grows and the peak stress falls from 248 to 162 MPa.'],
-  ['open-learning', '11', 'Open learning', 'Stained glass', 'A stained-glass leaf, built from Voronoi panes, lifts and rearranges into the panels and ribs of a canopy roof.'],
-  ['creative-arena', '12', 'Creative Arena', 'Octagon portholes', 'Five octagon windows play procedural scenes of Bharat: ink-wash river, a kolam drawing itself, dawn, monsoon rain, festival lights. The camera pushes into one, which becomes Episode 01.'],
-  ['requirements', '13', 'The requirements loop', 'Hologram HUD', 'A requirement leaves its node, routes to the three best-fit learners, forms a waveform between them, and reaches Delivery. REQ-0081 · routed 3 / 40 · due 14 days.'],
-  ['tokens', '14', 'Tools built with earned tokens', 'Iso infographic', 'A checklist ticks and tokens fill. Each four tokens spent drops a block (Library, Skill, Connector) onto a stack that becomes a tool, while the agentic history scrolls.'],
-  ['transcendence', '15', 'Transcendence phase', 'Oscilloscope', 'A tool’s trace tunes into phase with real data, five peers rate it, then a second tool’s trace combines with it into a new waveform: a new repo.'],
-  ['hive', '16', 'The hive network', 'Dark keynote', 'Glass hexagon tools assemble into a honeycomb. A question is typed, and only four cells light as the answer travels through them.'],
-  ['vision-modules', '17', 'Vision modules', 'Art deco', 'A sunburst of seven rays. A vision module rises through seven ray gates and six chevrons, each lighting as it passes; its seal turns gold only at the top.'],
-  ['four-es', '18', 'Four Es for schools', 'Liquid glass UI', 'A liquid blob fills four glass buttons in turn: Enable, Engage, Enhance. At Educate Samatwam the flow reverses and runs back into the Samatwam sun.'],
+  ['think', '01', 'To think is the real skill', 'Chalkboard → sketch · glass wipe', '"Tools change." Five tool chips blur out; a glass wipe opens on a sketch, and the five tools route into one glowing Decide button.'],
+  ['bandwidth', '02', 'The full bandwidth', 'Site → lab · glass wipe · stepper', 'Engineers with a plan, then a lab. A six-step glass stepper fills from Idea to Recalibration, and a dashed line loops back to the start.'],
+  ['womb', '03', 'The womb', 'Seedlings · class grid', 'Seedlings on a line. Six glass class tiles with metal badges; features drop into each, and the total counts up to 24.'],
+  ['claim-card', '04', 'Claim card and SAMT ticket', 'Workshop · glass card', 'A maker at the bench. A liquid-glass claim card turns face-on with a metal chip, a real QR code and a typed claim; Claimed lights in the stage row.'],
+  ['interface-layers', '05', 'Three interface layers', 'Field → classroom · three cards', 'Three glass cards rise: Generative (growing bars), Sustainative (a line settling inside its band), Transmittive (a node sending out lines).'],
+  ['your-data', '06', 'Your AI, your data', 'Code → servers · metal split', 'A metal divider splits the frame. Left: what stays with the learner, counted. Right: only three metrics slide across to the platform.'],
+  ['sim-arena', '07', 'Simulation Arena', 'Robot arm → robot · live chart', 'Three simulated runs draw their error curves and converge into one policy.'],
+  ['thought-to-part', '08', 'Thought to prototype', 'Sketch → machine · iris', '"A thought." An iris opens onto machinery, and a four-step timeline lights from Sketch to Prototype.'],
+  ['certified', '09', 'Certified creation', 'Microscope · certificate', 'A glass certificate checks off two proven claims and leaves one honestly untested; a gold metal seal lands: 2 / 3 claims.'],
+  ['engineering-cases', '10', 'Engineering cases', 'Lathe · comparison', 'Solid against lattice: stress bars fill to 248 and 162 MPa, a ring counts mass down 40%.'],
+  ['open-learning', '11', 'Open learning', 'Waterfall → site · glass wipe', '"Study the leaf." becomes "Build the roof." Three topic cards light: Biomimicry, Structural dissection, Biosensors.'],
+  ['creative-arena', '12', 'Creative Arena', 'Five metal portholes · push-in', 'Five octagon portholes in metal bezels play Bharat (Pushkar, the Taj at sunset, diyas, India from orbit, a waterfall). The camera pushes into the diyas: Episode 01.'],
+  ['requirements', '13', 'The requirements loop', 'Classroom → industry · flow', 'A clinic posts a need; Posted, Routed, Built and Delivered light in order, with the three matched learners.'],
+  ['tokens', '14', 'Tools built with earned tokens', 'Code · wallet and log', 'A token balance fills to 12, then is spent on Library, Skill and Connector while the agentic history writes itself.'],
+  ['transcendence', '15', 'Transcendence phase', 'Lab · live oscilloscope', 'A tool\u2019s trace tunes into phase with field data, five peers rate it, and a second tool combines with it into a new repo.'],
+  ['hive', '16', 'The hive network', 'Data centre → city · iris', 'A question is typed into a glass search bar; nineteen glass hexagon tools assemble and four light up as the answer.'],
+  ['vision-modules', '17', 'Vision modules', 'Earth → skyline · gates', 'Thirteen metal gates (seven streams, six disciplines) light in turn; the seal turns gold only when all 13 pass.'],
+  ['four-es', '18', 'Four Es for schools', 'Classroom · liquid buttons', 'Four glass buttons fill with liquid one by one; at Educate Samatwam the liquid flows back into the Samatwam sun.'],
 ];
 const state = {}; CLIPS.forEach(c => state[c[0]] = { verdict: '', fit: 0, notes: '' });
 document.getElementById('grid').innerHTML = CLIPS.map(([id, n, name, style, line]) => `<article class="clip" aria-labelledby="h-${id}">
