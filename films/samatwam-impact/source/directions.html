@@ -1,0 +1,51 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Impact directions</title><style>
+@font-face{font-family:'Geist-400';src:url(lib/fonts/Geist-Regular.woff2) format('woff2')}
+@font-face{font-family:'Geist-500';src:url(lib/fonts/Geist-Medium.woff2) format('woff2')}
+@font-face{font-family:'Geist-600';src:url(lib/fonts/Geist-SemiBold.woff2) format('woff2')}
+html,body{margin:0;background:#000}canvas{display:block}</style></head><body><canvas id="c" width="1920" height="1080"></canvas>
+<script src="lib/fonts.js"></script><script src="lib/util.js"></script><script src="lib/paint.js"></script><script src="lib/motion.js"></script><script src="lib/collage.js"></script><script src="lib/media.js"></script>
+<script>
+// Three directions for the same moment (the 12:43 doorstep, photo p2), per the three-direction gate. Geist only.
+const c = document.getElementById('c').getContext('2d'), W = 1920, H = 1080;
+const load = s => new Promise((r, e) => { const i = new Image(); i.onload = () => r(i); i.onerror = e; i.src = s; });
+const STAMP = { p1: '12:59', p2: '12:43', p3: '13:10', p4: '13:24', p5: '12:38', p6: '12:46', p7: '12:50', p8: '13:40', p9: '13:43' };
+const ORDER = ['p5', 'p2', 'p6', 'p7', 'p1', 'p3', 'p4', 'p8', 'p9'];
+const SAFF = '#E8963F', INK = '#F5F3EE';
+const txt = (s, x, y, size, fam = 'Geist-500', col = INK, track = 0, align = 'left') => { c.save(); c.font = `${size}px "${fam}"`; c.fillStyle = col; c.textAlign = align; c.textBaseline = 'alphabetic'; if (c.letterSpacing !== undefined) c.letterSpacing = track + 'px'; c.fillText(s, x, y); c.restore(); };
+async function A(P) {   // survey desk: prints on a drafting board, surveyed in hairlines, routed in saffron by time
+  c.fillStyle = '#0C0C0E'; c.fillRect(0, 0, W, H);
+  c.lineWidth = 1; for (let x = 0; x <= W; x += 40) { c.strokeStyle = x % 200 ? 'rgba(245,243,238,.035)' : 'rgba(245,243,238,.08)'; c.beginPath(); c.moveTo(x + .5, 0); c.lineTo(x + .5, H); c.stroke(); }
+  for (let y = 0; y <= H; y += 40) { c.strokeStyle = y % 200 ? 'rgba(245,243,238,.035)' : 'rgba(245,243,238,.08)'; c.beginPath(); c.moveTo(0, y + .5); c.lineTo(W, y + .5); c.stroke(); }
+  const pos = { p5: [300, 330, -.05, .56], p2: [760, 470, .02, 1], p6: [1280, 250, .04, .5], p7: [1660, 400, -.03, .46], p1: [1560, 760, .05, .55], p3: [1150, 860, -.04, .5], p4: [290, 740, .03, .5], p8: [690, 905, -.02, .42], p9: [1690, 880, .02, .38] };
+  c.save(); c.strokeStyle = SAFF; c.lineWidth = 2; c.setLineDash([10, 9]); c.beginPath(); ORDER.forEach((k, i) => { const [x, y] = pos[k]; i ? c.lineTo(x, y) : c.moveTo(x, y); }); c.stroke(); c.restore();
+  for (const k of ORDER.filter(k => k !== 'p2').concat(['p2'])) { const [x, y, r, s] = pos[k]; c.save(); c.translate(x, y); c.rotate(r); MD.print(c, P[k], 600 * s, 451 * s, { border: 12 * s + 4, tape: true, key: k }); c.restore();
+    MD.label(c, STAMP[k], x - 300 * s + 6, y + 451 * s / 2 + 40, { size: 26, fam: 'Geist-600', bg: SAFF, fg: '#111' }); }
+  txt('BISAHDA, UTTAR PRADESH', 80, 80, 22, 'Geist-500', INK, 7); txt('29 OCTOBER 2026  ·  NINE DOORSTEPS', 80, 116, 18, 'Geist-400', 'rgba(245,243,238,.55)', 5);
+  txt('28.59043° N   77.57569° E', W - 80, 80, 18, 'Geist-400', 'rgba(245,243,238,.6)', 3, 'right');
+}
+async function B(P) {   // documentary: the photo is the frame; a torn label and one hairline of data
+  MD.cover(c, P.p2, { crop: [0, 0, 1, .66], fx: .5, fy: .35, z: 1.06 });
+  const g = c.createLinearGradient(0, H * .55, 0, H); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,.72)'); c.fillStyle = g; c.fillRect(0, 0, W, H);
+  MD.label(c, 'Bisahda, 12:43', 96, H - 190, { size: 64, fam: 'Geist-600', bg: '#141312', fg: INK });
+  c.fillStyle = SAFF; c.fillRect(96, H - 112, 360, 3);
+  txt('THE SECOND DOORSTEP OF NINE', 96, H - 70, 20, 'Geist-500', 'rgba(245,243,238,.75)', 6);
+}
+async function C(P) {   // pilgrim's sketchbook: the photo redrawn as ink line on warm paper, saffron wash behind the two people
+  const iw = 1200, ih = 560, cv = document.createElement('canvas'); cv.width = iw; cv.height = ih; const g = cv.getContext('2d'); g.drawImage(P.p2, 0, 0, 1200, 560, 0, 0, iw, ih);
+  const d = g.getImageData(0, 0, iw, ih), s = d.data, L = new Float32Array(iw * ih); for (let i = 0; i < iw * ih; i++) L[i] = (s[i * 4] * .3 + s[i * 4 + 1] * .59 + s[i * 4 + 2] * .11) / 255;
+  const out = g.createImageData(iw, ih);
+  for (let y = 1; y < ih - 1; y++) for (let x = 1; x < iw - 1; x++) { const i = y * iw + x;
+    const gx = -L[i - iw - 1] - 2 * L[i - 1] - L[i + iw - 1] + L[i - iw + 1] + 2 * L[i + 1] + L[i + iw + 1], gy = -L[i - iw - 1] - 2 * L[i - iw] - L[i - iw + 1] + L[i + iw - 1] + 2 * L[i + iw] + L[i + iw + 1];
+    const e = Math.min(1, Math.hypot(gx, gy) * 1.6), tone = L[i] < .28 ? .5 : L[i] < .5 ? .22 : 0, hatch = tone && ((x + y) % (tone > .3 ? 5 : 9) === 0) ? tone : 0, ink = Math.max(e > .32 ? e : 0, hatch);
+    out.data[i * 4] = 28; out.data[i * 4 + 1] = 24; out.data[i * 4 + 2] = 20; out.data[i * 4 + 3] = ink * 255; }
+  g.putImageData(out, 0, 0);
+  c.fillStyle = '#F1EBDF'; c.fillRect(0, 0, W, H);
+  const rnd = U.rng ? U.rng(7) : Math.random; for (let i = 0; i < 2600; i++) { c.fillStyle = `rgba(120,100,70,${.03 * rnd()})`; c.fillRect(rnd() * W, rnd() * H, 2, 2); }
+  c.save(); c.globalCompositeOperation = 'multiply'; [[760, 520, 420, '#F2B766', .55], [1060, 480, 360, '#E8963F', .35], [900, 760, 520, '#F7C98E', .3]].forEach(([x, y, r, col, a]) => { const rg = c.createRadialGradient(x, y, 0, x, y, r); rg.addColorStop(0, col); rg.addColorStop(1, 'rgba(255,255,255,0)'); c.globalAlpha = a; c.fillStyle = rg; c.beginPath(); c.arc(x, y, r, 0, 7); c.fill(); }); c.restore();
+  c.drawImage(cv, 260, 150, 1400, 653);
+  txt('Bisahda', 260, 960, 44, 'Geist-600', '#1C1814'); txt('12:43 · the second doorstep', 260, 1002, 22, 'Geist-400', 'rgba(28,24,20,.65)', 1);
+  c.strokeStyle = '#B5521A'; c.lineWidth = 2; c.beginPath(); c.moveTo(260, 920); c.lineTo(520, 920); c.stroke();
+}
+window.draw = async which => { const P = {}; for (const k of Object.keys(STAMP)) P[k] = await load(`photos/${k}.jpg`); for (const f of ['400 20px "Geist-400"', '500 20px "Geist-500"', '600 20px "Geist-600"']) await document.fonts.load(f); c.clearRect(0, 0, W, H); await ({ A, B, C })[which](P); return true; };
+window.READY = true;
+</script></body></html>
