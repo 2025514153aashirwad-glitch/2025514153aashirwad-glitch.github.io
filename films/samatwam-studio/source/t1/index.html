@@ -11,7 +11,14 @@ STUDIO(async () => {
   // the mark
   const M = chromeMark(420); const mx = (W - M.w) / 2, my = 250; gsap.set(M.wrap, { left: mx, top: my, opacity: 0, scale: .86, transformOrigin: '50% 50%' });
   const title = div('t big', { position: 'absolute', left: 0, width: W + 'px', top: '722px', textAlign: 'center', fontSize: '64px', color: '#F5F3EE' }, stage, [...'Samatwam Studio'].map(c => `<span style="display:inline-block;white-space:pre">${c}</span>`).join(''));
-  const sub = div('t', { position: 'absolute', left: 0, width: W + 'px', top: '810px', textAlign: 'center', fontSize: '22px', color: 'rgba(245,243,238,.55)' }, stage, 'The workshop, opening');
+  const sub = div('t', { position: 'absolute', left: 0, width: W + 'px', top: '818px', textAlign: 'center', fontSize: '19px', fontWeight: 500, letterSpacing: '.32em', textTransform: 'uppercase', color: 'rgba(245,243,238,.55)' }, stage, 'Uniting Infinity-A/E Systems');
+  // a quiet structural lattice: axis, datum, columns and an orbit, surveyed in hairlines behind the mark
+  const lat = div('', { position: 'absolute', inset: 0, pointerEvents: 'none' }, stage, `<svg width="${W}" height="${H}" fill="none" stroke="#F5F3EE" stroke-width="1">`
+    + `<path d="M960 120V940"/><path d="M260 682H1660"/><path d="M540 160V900"/><path d="M1380 160V900"/><circle cx="960" cy="460" r="300"/><circle cx="960" cy="460" r="236" stroke-dasharray="2 10"/>`
+    + [...Array(15)].map((_, i) => `<path d="M${540 + i * 60} 676V688"/>`).join('') + `<rect x="540" y="160" width="840" height="740"/></svg>`);
+  const segs = [...lat.querySelectorAll('path,circle,rect')].filter(n => !n.getAttribute('stroke-dasharray')); segs.forEach(n => { const L = n.getTotalLength(); n.dataset.L = L; n.style.strokeDasharray = L; n.style.strokeDashoffset = L; });
+  const dots = lat.querySelector('[stroke-dasharray]'); gsap.set(lat, { opacity: .16 });
+  tl.to(lat, { opacity: 0, duration: .8, ease: 'power2.in' }, 3.1);
   gsap.set(title.children, { opacity: 0, y: 22, '--b': 10 }); gsap.set(sub, { opacity: 0, y: 12 });
   const live = { liquid: 150 };
   tl.to(M.wrap, { opacity: 1, duration: 1.0, ease: 'power2.out' }, .2).to(M.wrap, { scale: 1, duration: 2.2, ease: 'glide' }, .2).to(live, { liquid: 0, duration: 2.4, ease: 'soft' }, .2)
@@ -28,8 +35,8 @@ STUDIO(async () => {
     .fromTo(a.pf, { width: '24%' }, { width: '62%', duration: 2.2, ease: 'glide' }, 5.6).fromTo(a.rows, { opacity: 0, x: -14 }, { opacity: 1, x: 0, duration: .6, ease: 'reveal', stagger: .12 }, 5.2)
     .fromTo(bw.ev, { opacity: 0, x: -14 }, { opacity: 1, x: 0, duration: .6, ease: 'reveal', stagger: .1 }, 5.8);
   const Q = 'Summarise the Bisahda water pump trial and draft the field report';
-  perFrame.push(t => { M.set(live.liquid, ramp(t, 0, 4.4) * .9); sheen(icons, t, 4.5, .9, .07); const n = Math.round(Q.length * ramp(t, 5.4, 6.9)); a.q.textContent = Q.slice(0, n) + (t > 5.3 && t < 7.4 && Math.floor(t * 2.2) % 2 ? '|' : ''); });
+  perFrame.push(t => { segs.forEach((n, i) => { const p = smooth(ramp(t, .1 + i * .07, 1.9 + i * .07)); n.style.strokeDashoffset = n.dataset.L * (1 - p); }); dots.style.opacity = ramp(t, 1.2, 2); M.set(live.liquid, ramp(t, 0, 4.4) * .9); sheen(icons, t, 4.5, .9, .07); const n = Math.round(Q.length * ramp(t, 5.4, 6.9)); a.q.textContent = Q.slice(0, n) + (t > 5.3 && t < 7.4 && Math.floor(t * 2.2) % 2 ? '|' : ''); });
   // the mark lives above the desktop until it lands
-  stage.appendChild(M.wrap); stage.appendChild(title); stage.appendChild(sub);
+  stage.appendChild(lat); stage.appendChild(M.wrap); stage.appendChild(title); stage.appendChild(sub);
 });
 </script></body></html>
