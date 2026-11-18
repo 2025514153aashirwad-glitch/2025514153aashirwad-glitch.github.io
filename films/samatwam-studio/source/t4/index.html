@@ -1,0 +1,30 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Studio T4 Taskbar macro</title></head><body><div id="stage"></div>
+<script src="../shared/motion.js"></script><script src="../shared/gsap.min.js"></script><script src="../shared/studio.js"></script>
+<script>
+// T4 · Taskbar macro: a tilted close-up glides across liquid-metal icons that magnify under focus, then the camera pulls back to the studio.
+window.DUR = 7;
+STUDIO(async () => {
+  const cam = div('', { position: 'absolute', inset: 0, transformOrigin: '50% 1006px' }); const D = desktop('d', cam); const { tb } = D;
+  D.a.q.textContent = 'Summarise the Bisahda water pump trial and draft the field report';
+  const icons = [tb.L, ...Object.values(tb.icons)], NAMES = ['Samatwam', 'Agent', 'Build Record', 'Research', 'Simulation Arena', 'Requirement Exchange', 'Ring', 'Files'];
+  icons.forEach(i => i.style.transformOrigin = '50% 100%');
+  const tip = div('t', { position: 'absolute', padding: '9px 16px', borderRadius: '14px', fontSize: '15px', fontWeight: 500, color: '#F5F3EE', whiteSpace: 'nowrap', background: 'rgba(255,255,255,.14)', border: '1px solid rgba(255,255,255,.3)', backdropFilter: 'blur(20px)', boxShadow: '0 10px 24px rgba(0,0,0,.35)' }, tb.b);
+  tb.b.style.overflow = 'visible';
+  const far = [D.a.w, D.bw.w];
+  const live = { cur: -0.4, m: 1, s: 2.7, rx: 24, ty: 0, tx: 260 };
+  tl.to(live, { cur: 7.4, duration: 4.4, ease: 'power1.inOut' }, .2).to(live, { tx: -260, duration: 4.6, ease: 'power1.inOut' }, 0)
+    .to(live, { s: 1, rx: 0, tx: 0, m: 0, duration: 1.6, ease: 'glide' }, 4.6).to(live, { cur: 2, duration: 1.2, ease: 'glide' }, 4.6);
+  perFrame.push(t => {
+    const m = live.m; cam.style.transform = `translate(${live.tx}px, ${(-360 * m).toFixed(2)}px) perspective(1500px) rotateX(${live.rx}deg) scale(${live.s})`;
+    far.forEach(w => w.style.filter = `blur(${(14 * m).toFixed(2)}px)`); D.field.f.style.filter = `blur(${(10 * m).toFixed(2)}px)`;
+    let best = 0, bd = 9;
+    icons.forEach((ic, i) => { const d = i - live.cur, g = Math.exp(-d * d / 1.3), s = 1 + .5 * g * Math.max(m, .0001 + m);
+      ic.style.transform = `translateY(${(-(s - 1) * 26).toFixed(2)}px) scale(${s.toFixed(4)})`; ic.style.margin = `0 ${((s - 1) * 22).toFixed(2)}px`;
+      ic.style.filter = `blur(${(Math.min(7, Math.abs(d) * 2.1) * m).toFixed(2)}px)`;
+      ic.querySelector('.sh').style.setProperty('--sx', (-120 + 240 * gsap.utils.clamp(0, 1, .5 - d * .35)) + '%'); if (Math.abs(d) < bd) { bd = Math.abs(d); best = i; } });
+    tb.b.style.left = Math.round((W - tb.b.offsetWidth) / 2) + 'px';
+    const ic = icons[best]; tip.textContent = NAMES[best]; tip.style.opacity = (m * gsap.utils.clamp(0, 1, 1.6 - bd * 2.2)).toFixed(3);
+    tip.style.left = (ic.offsetLeft + 32 - tip.offsetWidth / 2) + 'px'; tip.style.top = (-62 - 30 * m) + 'px';
+  });
+});
+</script></body></html>

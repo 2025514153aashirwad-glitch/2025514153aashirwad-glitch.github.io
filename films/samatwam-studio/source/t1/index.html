@@ -1,0 +1,35 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Studio T1 Boot</title></head><body><div id="stage"></div>
+<script src="../shared/motion.js"></script><script src="../shared/gsap.min.js"></script><script src="../shared/studio.js"></script>
+<script>
+// T1 · Boot: a liquid-chrome mark settles, drops into the taskbar, the taskbar rises and the studio opens.
+window.DUR = 8;
+STUDIO(async () => {
+  const D = desktop('d'); const { a, bw, tb } = D;
+  const icons = [tb.L, ...Object.values(tb.icons)];
+  gsap.set(D.field.glows, { opacity: 0, scale: .8 }); gsap.set(tb.b, { y: 170, opacity: 0 }); gsap.set(icons, { y: 34, opacity: 0 });
+  gsap.set([a.w, bw.w], { opacity: 0, y: 46, scale: .93, '--b': 14, transformOrigin: '50% 100%' });
+  // the mark
+  const M = chromeMark(420); const mx = (W - M.w) / 2, my = 250; gsap.set(M.wrap, { left: mx, top: my, opacity: 0, scale: .86, transformOrigin: '50% 50%' });
+  const title = div('t big', { position: 'absolute', left: 0, width: W + 'px', top: '722px', textAlign: 'center', fontSize: '64px', color: '#F5F3EE' }, stage, [...'Samatwam Studio'].map(c => `<span style="display:inline-block;white-space:pre">${c}</span>`).join(''));
+  const sub = div('t', { position: 'absolute', left: 0, width: W + 'px', top: '810px', textAlign: 'center', fontSize: '22px', color: 'rgba(245,243,238,.55)' }, stage, 'The workshop, opening');
+  gsap.set(title.children, { opacity: 0, y: 22, '--b': 10 }); gsap.set(sub, { opacity: 0, y: 12 });
+  const live = { liquid: 150 };
+  tl.to(M.wrap, { opacity: 1, duration: 1.0, ease: 'power2.out' }, .2).to(M.wrap, { scale: 1, duration: 2.2, ease: 'glide' }, .2).to(live, { liquid: 0, duration: 2.4, ease: 'soft' }, .2)
+    .to(title.children, { opacity: 1, y: 0, '--b': 0, duration: .9, ease: 'reveal', stagger: .035 }, 1.7).to(sub, { opacity: 1, y: 0, duration: .8, ease: 'reveal' }, 2.2)
+    .to([title, sub], { opacity: 0, y: -18, '--b': 8, duration: .45, ease: 'power2.in' }, 3.15);
+  // the drop into the launcher
+  const r = tb.L.getBoundingClientRect(), tx = r.left + 32 - (mx + M.w / 2), ty = r.top - 170 + 32 - (my + 210);
+  tl.to(M.wrap, { x: tx, y: ty, scale: 40 / 420, duration: 1.0, ease: 'drop' }, 3.4).to(live, { liquid: 40, duration: .5, ease: 'power2.in' }, 3.4).to(live, { liquid: 0, duration: .6, ease: 'soft' }, 3.9)
+    .to(tb.b, { y: 0, opacity: 1, duration: 1.0, ease: 'snap' }, 3.55)
+    .to(icons, { y: 0, opacity: 1, duration: .8, ease: 'snap', stagger: .05 }, 3.8).to(M.wrap, { opacity: 0, duration: .25 }, 4.45)
+    .to(D.field.glows, { opacity: 1, scale: 1, duration: 2.2, ease: 'glide', stagger: .15 }, 3.4);
+  // the studio opens
+  tl.to(a.w, { opacity: 1, y: 0, scale: 1, '--b': 0, duration: 1.0, ease: 'reveal' }, 4.9).to(bw.w, { opacity: 1, y: 0, scale: 1, '--b': 0, duration: 1.0, ease: 'reveal' }, 5.4)
+    .fromTo(a.pf, { width: '24%' }, { width: '62%', duration: 2.2, ease: 'glide' }, 5.6).fromTo(a.rows, { opacity: 0, x: -14 }, { opacity: 1, x: 0, duration: .6, ease: 'reveal', stagger: .12 }, 5.2)
+    .fromTo(bw.ev, { opacity: 0, x: -14 }, { opacity: 1, x: 0, duration: .6, ease: 'reveal', stagger: .1 }, 5.8);
+  const Q = 'Summarise the Bisahda water pump trial and draft the field report';
+  perFrame.push(t => { M.set(live.liquid, ramp(t, 0, 4.4) * .9); sheen(icons, t, 4.5, .9, .07); const n = Math.round(Q.length * ramp(t, 5.4, 6.9)); a.q.textContent = Q.slice(0, n) + (t > 5.3 && t < 7.4 && Math.floor(t * 2.2) % 2 ? '|' : ''); });
+  // the mark lives above the desktop until it lands
+  stage.appendChild(M.wrap); stage.appendChild(title); stage.appendChild(sub);
+});
+</script></body></html>

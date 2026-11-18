@@ -1,0 +1,27 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Studio T6 Day and night</title></head><body><div id="stage"></div>
+<script src="../shared/motion.js"></script><script src="../shared/gsap.min.js"></script><script src="../shared/studio.js"></script>
+<script>
+// T6 · Day and night: the theme switch flips, a liquid saffron edge sweeps the studio from black to white.
+window.DUR = 6;
+function toggle(p, theme) { const t = div('', { position: 'absolute', right: '120px', top: '44px', width: '112px', height: '52px', borderRadius: '26px', boxSizing: 'border-box',
+    background: theme === 'd' ? 'rgba(255,255,255,.1)' : 'rgba(255,255,255,.7)', border: theme === 'd' ? '1px solid rgba(255,255,255,.28)' : '1px solid rgba(0,0,0,.08)', backdropFilter: 'blur(24px)', boxShadow: '0 10px 30px rgba(0,0,0,.25)' }, p);
+  const k = div('icon', { position: 'absolute', left: '5px', top: '5px', width: '40px', height: '40px', borderRadius: '20px' }, t,
+    '<svg style="left:9px;top:9px;width:22px;height:22px" viewBox="0 0 24 24" fill="none" stroke="#1B1F26" stroke-width="1.8" stroke-linecap="round"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>'); div('sh', {}, k);
+  return { t, k }; }
+STUDIO(async () => {
+  const Dk = desktop('d'), Lt = desktop('l'); const tD = toggle(Dk.root, 'd'), tL = toggle(Lt.root, 'l');
+  gsap.set(tL.k, { x: 62 }); tL.k.querySelector('svg').innerHTML = '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>';
+  Dk.a.q.textContent = Lt.a.q.textContent = 'Summarise the Bisahda water pump trial and draft the field report';
+  const bandWrap = div('', { position: 'absolute', inset: 0, filter: 'blur(16px)', pointerEvents: 'none' }); const band = div('', { position: 'absolute', inset: 0, background: 'linear-gradient(180deg,#FFF1DE,#F2B766 30%,#E07A2A 55%,#F7C98E 80%,#FFF4E6)' }, bandWrap);
+  const rim = div('', { position: 'absolute', inset: 0, background: 'rgba(255,255,255,.95)', pointerEvents: 'none' });
+  const live = { x: W + 260, k: 0 };
+  tl.to(tD.k, { x: 62, duration: .6, ease: 'snap' }, .7).to(live, { x: -340, duration: 2.8, ease: 'glide' }, 1.0).to(live, { k: 1, duration: 1.2, ease: 'power2.out' }, 1.0)
+    .fromTo(Lt.field.glows, { scale: .85 }, { scale: 1, duration: 3, ease: 'glide' }, 1.4);
+  const edge = (t, off) => { const pts = []; for (let y = -20; y <= H + 20; y += 18) { const x = live.x + off + live.k * (46 * Math.sin(y * .0062 + t * 2.3) + 22 * Math.sin(y * .017 - t * 3.1) + 120 * Math.sin(y * .0021 + .8)); pts.push(`${x.toFixed(1)}px ${y}px`); } return pts; };
+  perFrame.push(t => { const e0 = edge(t, 0), e1 = edge(t, 110), e2 = edge(t, 3);
+    Lt.root.style.clipPath = `polygon(${W + 900}px -20px, ${e0.join(',')}, ${W + 900}px ${H + 20}px)`;
+    band.style.clipPath = `polygon(${e0.join(',')}, ${e1.slice().reverse().join(',')})`; rim.style.clipPath = `polygon(${e0.join(',')}, ${e2.slice().reverse().join(',')})`;
+    bandWrap.style.opacity = rim.style.opacity = live.x < -300 || live.x > W + 200 ? 0 : 1;
+    sheen([tD.k], t, .6, .7); sheen([tL.k, ...Object.values(Lt.tb.icons)], t, 3.4, .9, .06); });
+});
+</script></body></html>
