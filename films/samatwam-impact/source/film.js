@@ -81,7 +81,7 @@ async function build() {
   };
   const sources = [];
   STOPS.forEach(([k, stamp, capx, capy], n) => {
-    const img = photos[k], [ccx, ccy] = CELLS[n], PH = PW * (img.height * CROP) / img.width, ox = ccx - PW / 2, oy = ccy - PH / 2, T0 = START[n];
+    const img = photos[k], [ccx, ccy] = CELLS[n], PH = PW * (img.height * CROP) / img.width, ox = ccx - PW / 2, oy = ccy - PH / 2, T0 = n ? START[n] - 1.15 : START[n];
     const gw = 560, gh = Math.round(gw * PH / PW), s = PW / gw;
     const [g, gx] = cv(gw, gh); gx.drawImage(img, 0, 0, img.width, img.height * CROP, 0, 0, gw, gh); const D = gx.getImageData(0, 0, gw, gh).data;
     let Lm = new Float32Array(gw * gh), Rm = new Float32Array(gw * gh);
