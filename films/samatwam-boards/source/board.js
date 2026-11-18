@@ -27,7 +27,7 @@ const icon = (n, s = 28, c = '#fff', w = 1.6) => n === 'spark' ? LOGO(s * 1.1) :
 function tile(i, name) { const c = i % 4, r = Math.floor(i / 4); const x = 104 + c * 434, y = 96 + r * 456;
   const t = el('div', { position: 'absolute', left: x + 'px', top: y + 'px', width: '410px', height: '432px', borderRadius: '22px', background: TILE, border: `1px solid ${LINE}`, overflow: 'hidden', zIndex: 2 });
   label(name, { left: '22px', top: '20px', fontSize: '12px', letterSpacing: '.14em', color: MUTE, fontWeight: 500 }, t);
-  tl.from(t, { opacity: 0, y: 26, scale: .97, duration: .8, ease: 'reveal' }, .08 + (c + r * 2) * .07); return t; }
+  tl.from(t, { opacity: 0, y: 34, scale: .94, filter: 'blur(14px)', duration: 1.1, ease: 'reveal' }, .08 + (c + r * 2) * .07); t.dataset.x = x; t.dataset.y = y; return t; }
 const at0 = i => .55 + i * .08;
 
 // a state ring: a conic light travelling round a ring, breathing; mode changes its behaviour
@@ -111,5 +111,25 @@ async function BOARD(n) {
   B.tiles.forEach(([type, name, o], i) => { const t = tile(i, name); const c = (o.gold || (type === 'card' && o.gold)) ? GOLD : B.c; TILES[type](t, { ...o, c, warm: o.gold ? '#FFF3D6' : WARM }, i); });
   // a slow push across the board, like a camera on a design sheet
   const all = [...stage.children].filter(e => e.style.zIndex === '2'); const wrap = el('div', { ...full, zIndex: 2 }); all.forEach(e => wrap.appendChild(e));
-  tl.fromTo(wrap, { scale: 1.0 }, { scale: 1.035, transformOrigin: '50% 50%', duration: DUR, ease: 'none' }, 0);
+  tl.fromTo(wrap, { scale: 1.0 }, { scale: 1.03, transformOrigin: '50% 50%', duration: DUR, ease: 'none' }, 0);
+  // the focus moment: the cursor clicks the key card, it expands like a shared-layout transition, then settles back
+  const tiles = all; const card = tiles[1], others = tiles.filter((_, k) => k !== 1);
+  const big = { left: 400, top: 150, width: 1120, height: 800 };
+  tl.to(card, { left: big.left, top: big.top, width: big.width, height: big.height, zIndex: 5, boxShadow: '0 40px 120px rgba(0,0,0,.6)', duration: 1.1, ease: 'glide' }, 3.65)
+    .to(others, { opacity: .28, filter: 'blur(6px)', scale: .97, duration: .9, ease: 'glide' }, 3.65)
+    .to(card, { left: +card.dataset.x, top: +card.dataset.y, width: 410, height: 432, boxShadow: '0 0 0 rgba(0,0,0,0)', duration: 1.0, ease: 'glide' }, 5.6)
+    .to(others, { opacity: 1, filter: 'blur(0px)', scale: 1, duration: .9, ease: 'glide' }, 5.6);
+  tl.set(card, { zIndex: 5 }, 3.6).set(card, { zIndex: 2 }, 6.6);
+  // a cursor that moves on springs and presses what it touches
+  const cur = el('div', { position: 'absolute', left: 0, top: 0, width: '30px', height: '30px', zIndex: 20, filter: 'drop-shadow(0 6px 14px rgba(0,0,0,.5))' }, stage,
+    '<svg width="30" height="30" viewBox="0 0 24 24"><path d="M4 2.5l15 9.2-6.6 1.3 3.8 7.2-2.6 1.4-3.8-7.3L5 19z" fill="#fff" stroke="#111" stroke-width="1.2" stroke-linejoin="round"/></svg>');
+  const cx = +card.dataset.x + 205, cy = +card.dataset.y + 230, inp = tiles[4], st = tiles[7];
+  tl.set(cur, { x: 1780, y: 1020, opacity: 0 }, 0).to(cur, { opacity: 1, duration: .3 }, .6)
+    .to(cur, { x: cx, y: cy, duration: .9, ease: 'glide' }, .6).to(cur, { scale: .82, duration: .12 }, 1.42).to(cur, { scale: 1, duration: .35, ease: 'snap' }, 1.54)
+    .to(cur, { x: +inp.dataset.x + 240, y: +inp.dataset.y + 210, duration: .9, ease: 'glide' }, 1.9)
+    .to(cur, { x: +st.dataset.x + 160, y: +st.dataset.y + 200, duration: .9, ease: 'glide' }, 2.6)
+    .to(cur, { x: cx, y: cy, duration: .8, ease: 'glide' }, 3.0).to(cur, { scale: .82, duration: .12 }, 3.5).to(cur, { scale: 1, duration: .35, ease: 'snap' }, 3.62)
+    .to(cur, { opacity: 0, duration: .4 }, 3.9);
+  const ripple = el('div', { position: 'absolute', left: (cx - 30) + 'px', top: (cy - 30) + 'px', width: '60px', height: '60px', borderRadius: '50%', border: '1.5px solid rgba(255,255,255,.7)', zIndex: 19, opacity: 0 });
+  [1.45, 3.53].forEach(a => tl.fromTo(ripple, { scale: .3, opacity: .9 }, { scale: 1.8, opacity: 0, duration: .7, ease: 'glide' }, a));
 }
