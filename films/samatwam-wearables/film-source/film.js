@@ -15,6 +15,8 @@ function seq(name, at, until, n = 90, fade = FADE) {
   const w = el('div', { ...full, overflow: 'hidden', zIndex: ++LAYER }); const im = el('img', { position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }, w);
   tl.set(w, { opacity: 0 }, 0).to(w, { opacity: 1, duration: fade, ease: 'none' }, at).set(w, { opacity: 0 }, until); tl.fromTo(im, { scale: 1 }, { scale: 1.05, duration: until - at, ease: 'none' }, at);
   perFrame.push(async (f, t) => { if (t < at || t > until) return; const k = clamp(Math.round((t - at) * 30) + 1, 1, n); const src = `../shared/renders/${name}/${String(k).padStart(4, '0')}.png`; if (im.dataset.k !== src) { im.src = src; im.dataset.k = src; try { await im.decode(); } catch (e) {} } }); return w; }
+// a soft fade in the background colour behind text, so type never sits on the product
+function scrim(at, until, bg) { const sc = el('div', { ...full, background: bg, zIndex: 199 }); tl.set(sc, { opacity: 0 }, 0).to(sc, { opacity: 1, duration: .5 }, at).set(sc, { opacity: 0 }, until); return sc; }
 // type: one family; mode picks the GSAP reveal
 function type(html, o) { const dark = o.on === 'w'; const e = txt(html, { left: (o.x ?? 140) + 'px', top: (o.y ?? 140) + 'px', fontSize: (o.s || 72) + 'px', lineHeight: Math.round((o.s || 72) * 1.04) + 'px', letterSpacing: o.ls || '-.035em', whiteSpace: 'normal', width: (o.w || 1100) + 'px', color: o.c || (dark ? ON_W : ON_B), fontWeight: o.wt || 500, textAlign: o.align || 'left', zIndex: 200 + (++LAYER), textShadow: 'none' });
   const sp = SplitText.create(e, { type: 'lines,words,chars', mask: 'lines' }); const m = o.mode || 'lines';
@@ -40,21 +42,21 @@ async function FILM() {
   type('Samatwam Ring', { x: 140, y: 820, s: 96, at: 7.6, out: 11.6, mode: 'chars' });
   small('W1 · Physical AI wearable · concept', { x: 144, y: 930, at: 8.4, out: 11.6 });
   // 12–20 s: hero still, specs
-  still('black_hero', 12, 20.2, { scale: 1.04, x: 30 }, { scale: 1.1, x: -20 });
+  still('black_hero', 12, 20.2, { scale: 1.04, x: -300 }, { scale: 1.1, x: -340 }); scrim(12.4, 20.2, 'linear-gradient(90deg, rgba(10,10,11,0) 45%, rgba(10,10,11,.85) 62%, #0A0A0B 80%)');
   type('Titanium.<br>Eight millimetres.<br>Four grams.', { x: 1180, y: 300, w: 640, s: 58, at: 13, out: 19.4 });
   small('Design targets, not measurements', { x: 1184, y: 520, at: 14.4, out: 19.4, s: 15 });
   // 20–30 s: cut to WHITE. The embossed marks, in macro.
   field(PAPER, 20, 38);
-  still('white_macro', 20, 30.2, { scale: 1.12, x: 60 }, { scale: 1.0, x: -40 }, .01);
+  still('white_macro', 20, 30.2, { scale: 1.12, x: 60, y: 120 }, { scale: 1.0, x: -40, y: 120 }, .01); scrim(20.2, 30.2, 'linear-gradient(180deg, #F7F7F5 0%, rgba(247,247,245,.9) 18%, rgba(247,247,245,0) 34%)');
   type('Every surface carries the mark.', { x: 140, y: 120, w: 1100, s: 64, on: 'w', at: 21, out: 29.4 });
   small('Samatwam marks, embossed and satin-finished, every 5.6 mm', { x: 144, y: 220, on: 'w', at: 22, out: 29.4 });
   // 30–38 s: the turntable on white
-  seq('white_turn', 30, 38.2);
+  seq('white_turn', 30, 38.2); scrim(30.2, 38.2, 'linear-gradient(90deg, #F7F7F5 0%, rgba(247,247,245,.92) 30%, rgba(247,247,245,0) 48%), linear-gradient(180deg, #F7F7F5 0%, rgba(247,247,245,0) 22%)');
   type('Made to be forgotten on your hand.', { x: 140, y: 120, w: 900, s: 56, on: 'w', at: 31, out: 37.4 });
   specs([['Band width', '8 mm'], ['Wall', '2.6 mm'], ['Weight', '4 g'], ['Water', '10 m']], 140, 640, 32.2, 37.4, 'w', 560);
   // 38–46 s: BLACK. Inside the ring: the sensor window.
   field(INK, 38, 120);
-  still('black_inner', 38, 46.2, { scale: 1.02 }, { scale: 1.12 });
+  still('black_inner', 38, 46.2, { scale: 1.02, x: 240 }, { scale: 1.12, x: 240 }); scrim(38.2, 46.2, 'linear-gradient(90deg, #0A0A0B 0%, rgba(10,10,11,.9) 30%, rgba(10,10,11,0) 50%)');
   type('Inside, it reads three things.', { x: 140, y: 120, s: 60, at: 39, out: 45.4 });
   ['Grip pulse', 'Motion', 'Skin temperature'].forEach((s, i) => { type(s, { x: 140, y: 760 + i * 70, s: 40, at: 40.4 + i * .5, out: 45.4 }); rule(140, 750 + i * 70, 520, 40.3 + i * .5, 45.4); });
   // 46–55 s: the edge model, drawn on black (no cloud)
@@ -73,7 +75,7 @@ async function FILM() {
   type('4 ms', { x: 1240, y: 470, w: 220, s: 40, at: 50, out: 54.6, mode: 'scramble' }); small('to decide', { x: 1242, y: 530, w: 220, at: 50.2, out: 54.6 });
   type('Nothing leaves the ring.', { x: 140, y: 820, s: 64, at: 52, out: 54.8 });
   // 55–60 s: the decision. The status light on the real ring, one line.
-  still('black_led', 55, 60.2, { scale: 1.0 }, { scale: 1.08 });
+  still('black_led', 55, 60.2, { scale: 1.0, y: -120 }, { scale: 1.08, y: -120 }); scrim(55.2, 60.2, 'linear-gradient(0deg, #0A0A0B 0%, rgba(10,10,11,.9) 26%, rgba(10,10,11,0) 46%)');
   type('Rest two minutes.', { x: 140, y: 820, s: 72, at: 56, out: 59.6, mode: 'chars' });
   small('Grip strain at 72% of your baseline · example', { x: 144, y: 920, at: 56.8, out: 59.6 });
 
