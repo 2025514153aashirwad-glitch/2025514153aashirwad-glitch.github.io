@@ -109,7 +109,7 @@ elif shot == 'black_sweep':   # a strip light slides across; the reflection trav
 elif shot == 'black_inner':   # through the ring to the sensor window
     stand(-8); camera((.012, -.09, .028), (0, -.004, 11.6 * MM), 100, 8); area('Key', (-.08, -.06, .12), (.12, .08), 1.6, (1, .97, .93)); area('Rim', (.1, .12, .03), (.02, .2), 1.5, (.85, .9, 1))
 elif shot == 'black_led':     # macro on the status light
-    stand(180 + 20); camera((.008, .055, .03), (0, 11.6 * MM, 13 * MM), 100, 2.8); area('Key', (-.08, .02, .12), (.1, .06), 3, (1, .97, .93)); area('Rim', (.06, .1, .02), (.02, .15), 2, (.85, .9, 1))
+    stand(14); camera((.016, -.05, .042), (0, -1.8 * MM, 23.2 * MM), 100, 5.6); area('Key', (-.09, -.06, .12), (.1, .06), 1.2, (1, .97, .93)); area('Rim', (.08, .1, .03), (.02, .15), 1.2, (.85, .9, 1))
 elif shot == 'white_macro':   # the logo field, shallow depth of field
     stand(10); camera((.004, -.034, .05), (0, 0, 23.2 * MM), 100, 16); area('Key', (-.1, -.12, .14), (.25, .2), 6); area('Fill', (.15, -.05, .06), (.2, .2), 2)
 elif shot == 'white_profile':
