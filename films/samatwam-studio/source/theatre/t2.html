@@ -1,0 +1,44 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Studio T2 Glass desk</title><style>html,body{margin:0;background:#050506;overflow:hidden}canvas{display:block;width:1920px;height:1080px}</style></head>
+<body><canvas id="c"></canvas><script src="bundle.js"></script><script>
+// T2 · Glass desk. Theatre.js holds the timeline; three.js renders. The Build Record card slides behind the bevelled glass
+// of the Commons window, bending through the glass edge, and settles into the record slot.
+window.DUR = 6;
+const { getProject, types: t } = THEATRE;
+const CX = -.35, CY = .05, CW = 1.65, CH = 1.05, SX = CX, SY = CY + (.5 - 495 / 700) * CH, CARD = [.98, .98 * 982 / 1404];
+const state = theatreState('Glass desk', 6, {
+  Camera: { x: [[0, .75], [6, .15]], y: [[0, .42], [6, .22]], z: [[0, 4.3], [6, 3.75]] },
+  Card: { x: [[0, 1.75], [1.1, 1.55], [3.3, .35], [4.9, SX], [6, SX]], y: [[0, .12], [1.1, .1], [3.3, -.06], [4.9, SY], [6, SY]],
+          scale: [[0, 1], [3.3, .8], [4.9, .42], [6, .42]], roll: [[0, -.09], [3.3, .045], [4.9, 0], [6, 0]] },
+  Rim: { glow: [[0, .55], [4.7, .55], [5.3, 1.6], [6, .9]] },
+});
+const sheet = getProject('Samatwam T2', { state }).sheet('Glass desk');
+const OCam = sheet.object('Camera', { x: .75, y: .42, z: 4.3 }), OCard = sheet.object('Card', { x: 1.75, y: .12, scale: 1, roll: -.09 }), ORim = sheet.object('Rim', { glow: .55 });
+
+const r = new THREE.WebGLRenderer({ canvas: c, antialias: true, preserveDrawingBuffer: true }); r.setPixelRatio(2); r.setSize(1920, 1080, false);
+r.outputColorSpace = THREE.SRGBColorSpace; r.toneMapping = THREE.NoToneMapping;
+const scene = new THREE.Scene(); scene.background = new THREE.Color('#050506');
+const pm = new THREE.PMREMGenerator(r); const room = new RoomEnvironment(); scene.environment = pm.fromScene(room, .04).texture; scene.environmentIntensity = .55;
+const cam = new THREE.PerspectiveCamera(19.8, 16 / 9, .05, 50);
+const load = (u, blur = 0) => new Promise(res => { const i = new Image(); i.onload = () => { const cv = document.createElement('canvas'); cv.width = i.width; cv.height = i.height; const g = cv.getContext('2d'); if (blur) g.filter = `blur(${blur}px)`; g.drawImage(i, 0, 0);
+  const tx = new THREE.CanvasTexture(cv); tx.colorSpace = THREE.SRGBColorSpace; tx.anisotropy = 8; res(tx); }; i.src = u; });
+const ready = (async () => {
+  const [field, commons, build] = await Promise.all([load('tex/field.jpg', 7), load('tex/commons.webp'), load('tex/build.webp')]);
+  const plane = (w, h, tx, x, y, z, op = {}) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ map: tx, transparent: false, alphaTest: .08, ...op })); m.position.set(x, y, z); scene.add(m); return m; };
+  plane(3.84 * 1.6, 2.16 * 1.6, field, 0, 0, -.9, { alphaTest: 0 });
+  plane(CW, CH, commons, CX, CY, -.06);
+  const card = plane(CARD[0], CARD[1], build, 1.75, .12, -.034);
+  // the glass: a rounded slab, transmissive, with real refraction through its bevel
+  const glass = new THREE.Mesh(new RoundedBoxGeometry(CW + .03, CH + .03, .05, 10, .024), new THREE.MeshPhysicalMaterial({ color: '#fbf8f4', transmission: 1, thickness: .05, ior: 1.47, roughness: .025, metalness: 0, specularIntensity: 1, clearcoat: .4, clearcoatRoughness: .05, envMapIntensity: 1.2 }));
+  glass.position.set(CX, CY, 0); scene.add(glass);
+  const key = new THREE.DirectionalLight('#fff4e8', 2.2); key.position.set(-1.6, 1.9, 2.2); scene.add(key);
+  const rim = new THREE.PointLight('#ff8c33', 6, 6, 1.4); rim.position.set(1.9, .2, -.6); scene.add(rim);
+  const kick = new THREE.PointLight('#d8e4ff', 1.2, 6, 1.6); kick.position.set(-2.2, -.6, -.5); scene.add(kick);
+  const target = new THREE.Vector3(-.05, -.04, 0);
+  return { card, rim, target };
+})();
+window.render = async T => { const s = await ready; sheet.sequence.position = Math.min(T, 6);
+  const C = OCam.value, K = OCard.value; cam.position.set(C.x, C.y, C.z); cam.lookAt(s.target);
+  s.card.position.set(K.x, K.y, -.034); s.card.scale.setScalar(K.scale); s.card.rotation.z = K.roll; s.rim.intensity = 6 * ORim.value.glow;
+  r.render(scene, cam); await new Promise(q => requestAnimationFrame(() => requestAnimationFrame(q))); };
+window.READY = true;
+</script></body></html>

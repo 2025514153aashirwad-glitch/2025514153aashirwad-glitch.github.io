@@ -1,0 +1,49 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Studio T3 Ring push</title><style>html,body{margin:0;background:#030304;overflow:hidden}canvas{display:block;width:1920px;height:1080px}</style></head>
+<body><canvas id="c"></canvas><script src="bundle.js"></script><script>
+// T3 · From the ring to the light. Theatre.js holds the timeline; three.js renders the titanium ring (embossed mark tiles),
+// the camera pushes from the hero framing into the status light, which swells to saffron for the cut into the Ring app.
+window.DUR = 4.4;
+const { getProject } = THEATRE, MM = 1;   // scene units: millimetres
+const state = theatreState('Ring push', 4.4, {
+  Camera: { x: [[0, 60], [4.4, 4.5]], y: [[0, 50], [4.4, 31]], z: [[0, 160], [4.4, 22]], fov: [[0, 13.7], [4.4, 13.7]] },
+  Aim: { x: [[0, 0], [4.4, 0]], y: [[0, 11.6], [4.4, 23.2]], z: [[0, 0], [4.4, 1.8]] },
+  Ring: { yaw: [[0, .593], [4.4, .244]] },
+  Light: { glow: [[0, .25], [2.4, .35], [3.6, 1.2], [4.4, 3.2]] },
+});
+const sheet = getProject('Samatwam T3', { state }).sheet('Ring push');
+const OCam = sheet.object('Camera', { x: 60, y: 50, z: 160, fov: 13.7 }), OAim = sheet.object('Aim', { x: 0, y: 11.6, z: 0 }), ORing = sheet.object('Ring', { yaw: .593 }), OLight = sheet.object('Light', { glow: .25 });
+
+const r = new THREE.WebGLRenderer({ canvas: c, antialias: true, preserveDrawingBuffer: true }); r.setPixelRatio(2); r.setSize(1920, 1080, false);
+r.outputColorSpace = THREE.SRGBColorSpace; r.toneMapping = THREE.ACESFilmicToneMapping; r.toneMappingExposure = 1.05; r.shadowMap.enabled = true;
+const scene = new THREE.Scene(); scene.background = new THREE.Color('#030304');
+const pm = new THREE.PMREMGenerator(r); scene.environment = pm.fromScene(new RoomEnvironment(), .03).texture; scene.environmentIntensity = .5;
+const cam = new THREE.PerspectiveCamera(13.7, 16 / 9, .5, 3000);
+const ready = (async () => {
+  const img = await new Promise(res => { const i = new Image(); i.onload = () => res(i); i.src = 'tex/logo_tile.png'; });
+  const bump = new THREE.Texture(img); bump.needsUpdate = true; bump.wrapS = bump.wrapT = THREE.RepeatWrapping; bump.repeat.set(26, 7.5); bump.anisotropy = 8;
+  // the band: 18 mm inside, 2.6 mm wall, 8 mm wide, comfort-fit rounded edges (a lathe of a rounded rectangle)
+  const prof = [], Ri = 9, Ro = 11.6, Hh = 4, rr = 1.1;
+  const arc = (cx, cy, a0, a1) => { for (let k = 0; k <= 8; k++) { const a = a0 + (a1 - a0) * k / 8; prof.push(new THREE.Vector2(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr)); } };
+  arc(Ro - rr, -Hh + rr, -Math.PI / 2, 0); arc(Ro - rr, Hh - rr, 0, Math.PI / 2); arc(Ri + rr, Hh - rr, Math.PI / 2, Math.PI); arc(Ri + rr, -Hh + rr, Math.PI, 1.5 * Math.PI); prof.push(prof[0].clone());
+  const band = new THREE.Mesh(new THREE.LatheGeometry(prof, 256), new THREE.MeshPhysicalMaterial({ color: '#c4c1bb', metalness: 1, roughness: .22, bumpMap: bump, bumpScale: 1.4, envMapIntensity: 1.6, clearcoat: .2, clearcoatRoughness: .3 }));
+  band.rotation.x = Math.PI / 2; band.castShadow = true;
+  const ring = new THREE.Group(); ring.position.y = 11.6; ring.add(band); scene.add(ring);
+  // the status light on the outer surface, and its glow
+  const led = new THREE.Mesh(new THREE.SphereGeometry(.5, 32, 16), new THREE.MeshStandardMaterial({ color: '#E8963F', emissive: '#E8963F', emissiveIntensity: 2, toneMapped: false })); led.scale.set(1, .3 * 0 + 1, .3); led.position.set(0, 11.62, 1.8); led.rotation.x = 0; ring.add(led);
+  const gc = document.createElement('canvas'); gc.width = gc.height = 256; const g = gc.getContext('2d'), rg = g.createRadialGradient(128, 128, 0, 128, 128, 128);
+  rg.addColorStop(0, 'rgba(255,170,90,1)'); rg.addColorStop(.14, 'rgba(232,130,45,.85)'); rg.addColorStop(.45, 'rgba(200,95,25,.3)'); rg.addColorStop(1, 'rgba(180,80,20,0)'); g.fillStyle = rg; g.fillRect(0, 0, 256, 256);
+  const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(gc), blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, toneMapped: false })); glow.position.copy(led.position); ring.add(glow);
+  // the black studio: a seamless floor that only catches a soft reflection
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(2000, 2000), new THREE.MeshStandardMaterial({ color: '#000000', roughness: .9, metalness: 0, envMapIntensity: 0 })); floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
+  const key = new THREE.RectAreaLight ? null : null;
+  const k1 = new THREE.SpotLight('#fff6ec', 9000, 800, .16, .9, 2); k1.position.set(-120, 160, 100); k1.target.position.set(0, 11.6, 0); k1.castShadow = true; scene.add(k1, k1.target);
+  const rim = new THREE.SpotLight('#d9e4ff', 7000, 800, .35, .8, 2); rim.position.set(140, 50, -140); rim.target.position.set(0, 11.6, 0); scene.add(rim, rim.target);
+  const strip = new THREE.PointLight('#fff1e0', 900, 300, 2); strip.position.set(-40, 40, 70); scene.add(strip);
+  return { ring, led, glow };
+})();
+window.render = async T => { const s = await ready; sheet.sequence.position = Math.min(T, 4.4);
+  const C = OCam.value, A = OAim.value, gl = OLight.value.glow; cam.position.set(C.x, C.y, C.z); cam.fov = C.fov; cam.updateProjectionMatrix(); cam.lookAt(A.x, A.y, A.z);
+  s.ring.rotation.y = ORing.value.yaw; s.led.material.emissiveIntensity = .9 + gl * .5; s.glow.scale.setScalar(2 + gl * 3.2); s.glow.material.opacity = Math.min(1, .3 + gl * .28);
+  r.render(scene, cam); await new Promise(q => requestAnimationFrame(() => requestAnimationFrame(q))); };
+window.READY = true;
+</script></body></html>
