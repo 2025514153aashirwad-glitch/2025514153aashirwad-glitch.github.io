@@ -1,0 +1,81 @@
+<title>Samatwam Ring Film</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500&display=swap">
+<style>
+/* Layout: a screening page in the film's own two colours. Film first, chapters you can jump to, then your verdict and notes. */
+:root { --bg: #0A0A0B; --paper: #F7F7F5; --fg: #F5F5F2; --mute: rgba(245,245,242,.58); --line: rgba(245,245,242,.18); --saff: #E8892E; --ok: #7CC08F; --drop: #E9806F;
+  --sans: "Geist", "Inter", system-ui, sans-serif; color-scheme: dark; }
+body { background: var(--bg); color: var(--fg); font-family: var(--sans); font-size: 15px; line-height: 1.55; }
+.wrap { max-width: 1240px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 40px 80px; display: grid; gap: 36px; }
+.label { font-size: 12px; letter-spacing: .16em; text-transform: uppercase; color: var(--mute); font-weight: 500; }
+h1 { font-weight: 500; font-size: clamp(36px, 6vw, 72px); letter-spacing: -.04em; line-height: 1; margin: 6px 0 12px; }
+.lede { color: var(--mute); max-width: 68ch; margin: 0; }
+video { width: 100%; max-width: 100%; aspect-ratio: 16 / 9; display: block; background: #000; border: 1px solid var(--line); }
+h2 { font-weight: 500; font-size: 22px; letter-spacing: -.02em; margin: 0 0 12px; }
+.chapters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 36px; }
+@media (max-width: 760px) { .chapters { grid-template-columns: 1fr; } }
+.ch { display: grid; grid-template-columns: 64px 18px minmax(0, 1fr); gap: 12px; align-items: baseline; padding: 11px 0; border-top: 1px solid var(--line); cursor: pointer; background: none; border-left: 0; border-right: 0; border-bottom: 0; color: inherit; font: inherit; text-align: left; }
+.ch:hover .t { text-decoration: underline; }
+.ch .tc { font-variant-numeric: tabular-nums; color: var(--mute); font-size: 13px; }
+.ch .sw { width: 14px; height: 14px; border-radius: 3px; border: 1px solid var(--line); align-self: center; }
+.ch .t { font-weight: 500; } .ch .d { grid-column: 3; color: var(--mute); font-size: 13.5px; margin-top: 2px; }
+.notes { display: grid; gap: 12px; border-top: 1px solid var(--line); padding-top: 24px; }
+.seg { display: inline-flex; gap: 6px; flex-wrap: wrap; }
+.seg button { font: inherit; font-size: 14px; border: 1px solid var(--line); background: transparent; color: var(--fg); border-radius: 999px; padding: 7px 16px; cursor: pointer; }
+.seg button[aria-pressed="true"][data-v="keep"] { background: var(--ok); color: #0A0A0B; border-color: var(--ok); }
+.seg button[aria-pressed="true"][data-v="revise"] { background: var(--saff); color: #0A0A0B; border-color: var(--saff); }
+.seg button[aria-pressed="true"][data-v="redo"] { background: var(--drop); color: #0A0A0B; border-color: var(--drop); }
+textarea { font: inherit; width: 100%; box-sizing: border-box; min-height: 110px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; background: rgba(255,255,255,.03); color: var(--fg); resize: vertical; }
+textarea:focus, button:focus-visible { outline: 2px solid var(--saff); outline-offset: 2px; }
+.saved { font-size: 13px; color: var(--mute); min-height: 1.2em; }
+.facts { color: var(--mute); font-size: 13.5px; }
+.facts b { color: var(--fg); font-weight: 500; }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="label">Samatwam Physical AI · W1 · concept film · 2:00 · silent</div>
+    <h1>Samatwam Ring</h1>
+    <p class="lede">One minute on the product, one minute on how Samatwam's Physical AI class would build it. Black and white backgrounds only, one typeface, and the ring rendered in Blender with Samatwam marks embossed across its whole surface.</p>
+  </header>
+
+  <video id="film" src="mp4/Samatwam_Ring_W1_2min.mp4" controls playsinline preload="metadata"></video>
+
+  <section aria-labelledby="ch-h">
+    <h2 id="ch-h">Chapters</h2>
+    <div class="chapters" id="chapters"></div>
+  </section>
+
+  <section class="notes" aria-labelledby="n-h">
+    <h2 id="n-h">Your verdict</h2>
+    <div class="seg" role="group" aria-label="Verdict on the film">
+      <button type="button" data-v="keep" aria-pressed="false">Keep as is</button>
+      <button type="button" data-v="revise" aria-pressed="false">Revise</button>
+      <button type="button" data-v="redo" aria-pressed="false">Redo</button>
+    </div>
+    <label class="label" for="notes">Notes, with timecodes if you can (for example 0:24 slower)</label>
+    <textarea id="notes" placeholder="What should change, and where?"></textarea>
+    <div class="saved" id="saved">Connecting to your saved notes…</div>
+  </section>
+
+  <p class="facts"><b>On screen, honestly labelled:</b> product figures are design targets; the 72% strain, the certificate claims and the reviewer are examples; 70% comes from the Samatwam creator terms. <b>Made with:</b> Blender 4.5 (Cycles), GSAP, Geist. The animated shots were rendered at 1280 × 720 on a computer with no graphics card; a GPU re-render gives full resolution with the same files.</p>
+</div>
+
+<script>
+const CH = [[0, '#0A0A0B', 'Hook', 'One saffron point pulses in the dark: "It noticed before you did."'], [5, '#0A0A0B', 'Light sweep', 'A strip light crosses the titanium; the name arrives.'], [12, '#0A0A0B', 'Hero', 'Titanium. Eight millimetres. Four grams.'], [20, '#F7F7F5', 'The mark', 'Macro of the embossed Samatwam marks.'], [30, '#F7F7F5', 'Turntable', 'Made to be forgotten on your hand, with four specs.'], [38, '#0A0A0B', 'Inside', 'The sensor window: grip pulse, motion, skin temperature.'], [46, '#0A0A0B', 'The edge model', '0.4 MB on the ring, 4 ms to decide, nothing leaves the ring.'], [55, '#0A0A0B', 'The decision', 'The status light: rest two minutes.'], [60, '#F7F7F5', 'The question', 'Who builds a ring like this?'], [67, '#F7F7F5', 'The class', 'Question, Simulate, Build, Test, Certify.'], [77, '#F7F7F5', 'Simulation', 'Trained in simulation before it touches a hand.'], [86, '#0A0A0B', 'Proof', 'A certificate: two claims passed, one not yet tested; the gold seal.'], [96, '#F7F7F5', 'Ownership', '70% of what the work earns goes to its builders.'], [106, '#F7F7F5', 'Industry', 'Requirement, matched, built, delivered.'], [114, '#0A0A0B', 'The mark', 'Samatwam, Cohort 01, Delhi NCR.']];
+const v = document.getElementById('film'); const fmt = s => Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+document.getElementById('chapters').innerHTML = CH.map(([s, c, t, d]) => `<button type="button" class="ch" data-s="${s}"><span class="tc">${fmt(s)}</span><span class="sw" style="background:${c}"></span><span><span class="t">${t}</span><div class="d">${d}</div></span></button>`).join('');
+document.getElementById('chapters').addEventListener('click', e => { const b = e.target.closest('.ch'); if (!b) return; v.currentTime = +b.dataset.s; v.play().catch(() => {}); });
+const st = { verdict: '', notes: '' }; let db = null, timer = null; const saved = document.getElementById('saved'), ta = document.getElementById('notes');
+const paint = () => { document.querySelectorAll('.seg button').forEach(b => b.setAttribute('aria-pressed', String(st.verdict === b.dataset.v))); if (document.activeElement !== ta) ta.value = st.notes || ''; };
+const save = () => { clearTimeout(timer); saved.textContent = db ? 'Saving…' : 'Not saved: open this page signed in to claude.ai to keep notes'; if (!db) return;
+  timer = setTimeout(async () => { try { await db.doc('ringfilm/verdict').set({ ...st, updatedAt: Date.now() }); saved.textContent = 'Saved'; } catch (e) { saved.textContent = 'Could not save. Check your connection and try again.'; } }, 600); };
+document.querySelector('.seg').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; st.verdict = st.verdict === b.dataset.v ? '' : b.dataset.v; paint(); save(); });
+ta.addEventListener('input', () => { st.notes = ta.value; save(); });
+paint();
+(async () => { try { db = await (window.claude?.use ? window.claude.use('db') : null); } catch (e) { db = null; }
+  if (!db) { saved.textContent = 'Notes are not saving in this view. Open the page signed in to claude.ai to keep them.'; return; }
+  saved.textContent = 'Signed in · your verdict and notes save automatically';
+  db.collection('ringfilm').onSnapshot(snap => { for (const d of snap.docs) if (d.id === 'verdict') { Object.assign(st, d.data()); paint(); } }, () => {}); })();
+</script>
